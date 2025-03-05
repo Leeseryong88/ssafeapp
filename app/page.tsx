@@ -49,68 +49,13 @@ export default function Home() {
     // 새로운 이미지 파일이 없으면 함수 종료
     if (!file) return;
 
-    // 해당 항목의 상태를 로딩 중으로 변경
-    setAnalysisItems(prev => prev.map(item => 
-      item.id === itemId ? { ...item, image: file, imageUrl: URL.createObjectURL(file), loading: true, analysis: null } : item
-    ));
-
-    try {
-      // 요청 타임아웃 설정
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000); // 50초 타임아웃
-      
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      // 프로세스 이름이 있으면 추가
-      const currentItem = analysisItems.find(item => item.id === itemId);
-      if (currentItem && currentItem.processName) {
-        formData.append('processName', currentItem.processName);
-      }
-      
-      // API 요청
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
-      
-      // 타이머 해제
-      clearTimeout(timeoutId);
-
-      // 응답 확인
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || '이미지 분석 중 오류가 발생했습니다.');
-      }
-
-      // 응답 데이터 파싱
-      const data = await response.json();
-      
-      // 분석 결과가 없으면 에러 처리
-      if (!data.analysis) {
-        throw new Error('분석 결과를 받지 못했습니다.');
-      }
-
-      // 분석 결과 저장
-      setAnalysisItems(prev => prev.map(item => 
-        item.id === itemId ? { ...item, loading: false, analysis: data.analysis } : item
-      ));
-    } catch (error: any) {
-      console.error('이미지 분석 오류:', error);
-      
-      // 타임아웃 오류 특별 처리
-      if (error.name === 'AbortError') {
-        alert('이미지 분석 시간이 초과되었습니다. 이미지 크기를 줄이거나 다른 이미지를 시도해 보세요.');
-      } else {
-        alert(`이미지 분석 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
-      }
-      
-      // 오류 상태로 설정
-      setAnalysisItems(prev => prev.map(item => 
-        item.id === itemId ? { ...item, loading: false, analysis: null } : item
-      ));
-    }
+    // 임시 파일과 아이템 ID 저장 후 모달 표시
+    setTempImageFile(file);
+    setTempItemId(itemId);
+    setProcessNameInput(''); // 입력 필드 초기화
+    
+    // 모달 표시
+    setShowProcessNameModal(true);
   };
   
   // 공정/장비 명칭 입력 후 이미지 분석 처리
@@ -137,6 +82,10 @@ export default function Home() {
     );
 
     try {
+      // 요청 타임아웃 설정
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 50초 타임아웃
+      
       const formData = new FormData();
       formData.append('image', file);
       formData.append('processName', processName);
@@ -144,13 +93,25 @@ export default function Home() {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        signal: controller.signal
       });
+      
+      // 타이머 해제
+      clearTimeout(timeoutId);
 
+      // 응답 확인
       if (!response.ok) {
-        throw new Error('이미지 분석 중 오류가 발생했습니다.');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '이미지 분석 중 오류가 발생했습니다.');
       }
 
+      // 응답 데이터 파싱
       const data = await response.json();
+      
+      // 분석 결과가 없으면 에러 처리
+      if (!data.analysis) {
+        throw new Error('분석 결과를 받지 못했습니다.');
+      }
       
       // 분석 결과 업데이트
       setAnalysisItems(prevItems => 
@@ -160,14 +121,21 @@ export default function Home() {
             : item
         )
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('이미지 분석 오류:', error);
+      
+      // 타임아웃 오류 특별 처리
+      if (error.name === 'AbortError') {
+        alert('이미지 분석 시간이 초과되었습니다. 이미지 크기를 줄이거나 다른 이미지를 시도해 보세요.');
+      } else {
+        alert(`이미지 분석 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
+      }
       
       // 오류 상태 업데이트
       setAnalysisItems(prevItems => 
         prevItems.map(item => 
           item.id === itemId 
-            ? { ...item, analysis: '이미지 분석 중 오류가 발생했습니다. 다시 시도해주세요.', loading: false } 
+            ? { ...item, analysis: null, loading: false } 
             : item
         )
       );
