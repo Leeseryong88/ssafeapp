@@ -56,10 +56,13 @@ export async function POST(request: NextRequest) {
     console.log('이미지 분석 API 요청 시작');
     
     try {
-      // 타임아웃 설정 - AbortController 사용 (45초)
-      const timeoutMs = 45000;
+      // 타임아웃 설정 - AbortController 사용 (50초로 조정 - Vercel 제한 60초 내로 설정)
+      const timeoutMs = 50000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log('이미지 분석 API 타임아웃 발생 - ' + timeoutMs + 'ms 초과');
+      }, timeoutMs);
       
       // 프로세스 이름에 따른 프롬프트 추가
       const processNamePrompt = processName 
