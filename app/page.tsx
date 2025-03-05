@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import ImageUploader from '@/components/ImageUploader';
 import ImageAnalysis from '@/components/ImageAnalysis';
+import * as XLSX from 'xlsx';
 // html2pdf.js를 동적으로 임포트하도록 수정
 
 // 분석 항목 인터페이스 정의
@@ -463,6 +464,72 @@ export default function Home() {
     }
   };
 
+  // Excel 다운로드 함수 
+  const downloadExcel = () => {
+    if (!finalAnalysis || editableTableData.length === 0) {
+      alert('다운로드할 데이터가, 없습니다. 먼저 위험성 평가를 생성하세요.');
+      return;
+    }
+    
+    try {
+      // 데이터 구조화
+      const data = [
+        ['위험성 평가 보고서'],
+        [''],
+        ['날짜', new Date().toLocaleDateString()],
+        [''],
+        ['공정/장비', '위험요인', '심각도', '발생가능성', '위험도', '개선대책']
+      ];
+      
+      // 위험성 평가 데이터 추가
+      editableTableData.forEach((item: {
+        processName: string;
+        riskFactor: string;
+        severity: string;
+        probability: string;
+        riskLevel: string;
+        countermeasure: string;
+      }) => {
+        data.push([
+          item.processName || '',
+          item.riskFactor || '',
+          item.severity || '',
+          item.probability || '',
+          item.riskLevel || '',
+          item.countermeasure || ''
+        ]);
+      });
+      
+      // 워크시트 생성
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // 열 너비 설정
+      const wscols = [
+        {wch: 20}, // 공정/장비
+        {wch: 30}, // 위험요인
+        {wch: 10}, // 심각도
+        {wch: 15}, // 발생가능성
+        {wch: 10}, // 위험도
+        {wch: 40}  // 개선대책
+      ];
+      ws['!cols'] = wscols;
+      
+      // 워크북 생성
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '위험성평가');
+      
+      // 파일명 생성
+      const fileName = `위험성평가_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // 파일 다운로드
+      XLSX.writeFile(wb, fileName);
+      
+    } catch (error) {
+      console.error('Excel 다운로드 오류:', error);
+      alert('Excel 다운로드 중 오류가 발생했습니다.');
+    }
+  };
+
   // 위험성평가 추가 요청 함수 수정
   const requestAdditionalAssessment = async () => {
     // 이미 요청 중이면 중복 실행 방지
@@ -846,6 +913,19 @@ export default function Home() {
                           PDF로 저장
                         </>
                       )}
+                    </button>
+                  )}
+                  
+                  {/* Excel 다운로드 버튼 추가 */}
+                  {!isEditingFinal && (
+                    <button
+                      onClick={downloadExcel}
+                      className="ml-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors flex items-center shadow-sm"
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m-8-8h16"></path>
+                      </svg>
+                      Excel로 저장
                     </button>
                   )}
                 </div>
