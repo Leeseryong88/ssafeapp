@@ -5,15 +5,53 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export default function LandingPage() {
+  const handleServiceClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    alert('서비스 예정입니다 아래 사진으로 보는 위험과 위험성평가 도구를 베타테스트 해보세요.');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* 헤더 섹션 */}
-      <header className="bg-blue-600 text-white shadow-lg">
-        <div className="container mx-auto py-6 px-4 md:px-6">
-          <h1 className="text-3xl md:text-4xl font-bold">안전 위험성 평가 서비스</h1>
-          <p className="mt-2 text-lg md:text-xl">사진 분석으로 산업현장의 위험요소를 발견하고 개선하세요</p>
+      {/* 히어로 섹션 */}
+      <section className="relative bg-blue-600 text-white">
+        <div className="container mx-auto px-4 py-16 md:py-24">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6">
+              <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+                안전 위험성 평가 서비스
+              </h1>
+              <p className="text-xl md:text-2xl text-blue-100">
+                AI 기술로 산업현장의 위험요소를 발견하고 개선하세요
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={handleServiceClick}
+                  className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                >
+                  시작하기
+                </button>
+                <button 
+                  onClick={handleServiceClick}
+                  className="bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors"
+                >
+                  더 알아보기
+                </button>
+              </div>
+            </div>
+            <div className="relative h-[400px] md:h-[500px]">
+              <Image
+                src="/hero-image.jpg"
+                alt="AI 기반 산업 안전 시스템"
+                fill
+                style={{ objectFit: 'cover' }}
+                className="rounded-lg shadow-xl"
+                priority
+              />
+            </div>
+          </div>
         </div>
-      </header>
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-100 to-transparent"></div>
+      </section>
 
       {/* 메인 서비스 소개 섹션 */}
       <section className="container mx-auto py-12 px-4 md:px-6">
@@ -51,11 +89,15 @@ export default function LandingPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">위험성평가 도구</h3>
-              <p className="text-gray-600 mb-6">
-                작업 현장의 사진을 업로드하면 AI가 자동으로 위험성을 평가하고 
-                위험성평가표를 생성합니다. 지금 바로 시작하세요.
-              </p>
+              <div className="flex flex-col gap-4">
+                <h2 className="text-2xl font-bold">위험성평가 도구(구독회원 전용)</h2>
+                <p className="text-gray-600">
+                  작업 현장의 사진을 업로드하면 AI가 자동으로 위험성을 평가하고 위험성평가 보고서를 생성합니다. 지금 바로 시작하세요.
+                </p>
+                <p className="text-red-500 font-medium">
+                  * 본 서비스는 데스크톱 환경에서 사용하시기 바랍니다.
+                </p>
+              </div>
             </div>
           </Link>
         </div>
