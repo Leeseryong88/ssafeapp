@@ -1,6 +1,29 @@
 {
+  "name": "image-analysis-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
   "dependencies": {
-    "@google/generative-ai": "^0.22.0",
-    "openai": "^4.85.4"
+    "@google/generative-ai": "^0.2.0",
+    "autoprefixer": "^10.4.17",
+    "html2pdf.js": "^0.10.3",
+    "next": "14.1.0",
+    "postcss": "^8.4.35",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.1.0",
+    "typescript": "^5.3.3"
   }
 }
