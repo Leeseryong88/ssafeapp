@@ -9,8 +9,11 @@ import {
   signInWithPopup,
   User,
   sendPasswordResetEmail,
+  OAuthProvider,
 } from 'firebase/auth';
 import { auth } from './firebase';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 // 이메일/비밀번호로 회원가입
 export const registerWithEmail = async (email: string, password: string) => {
@@ -37,6 +40,56 @@ export const loginWithGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
+    return userCredential.user;
+  } catch (error: any) {
+    throw new Error(getAuthErrorMessage(error.code));
+  }
+};
+
+// 카카오 로그인
+export const loginWithKakao = async () => {
+  try {
+    const provider = new OAuthProvider('oidc.kakao');
+    provider.addScope('profile');
+    provider.addScope('account_email');
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    const userCredential = await signInWithPopup(auth, provider);
+    
+    // 카카오 로그인 성공 후 Firestore에 사용자 프로필 정보 업데이트
+    const user = userCredential.user;
+    const kakaoDisplayName = user.displayName; // 카카오에서 제공하는 닉네임
+    
+    if (user && kakaoDisplayName) {
+      const userDocRef = doc(db, 'users', user.uid);
+      
+      // Firestore에 사용자 문서가 있는지 확인
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        // 새 사용자인 경우 문서 생성
+        await setDoc(userDocRef, {
+          email: user.email,
+          displayName: kakaoDisplayName,
+          createdAt: new Date(),
+          phoneNumber: '',
+          company: '',
+          position: '',
+          bio: '',
+          profileImage: user.photoURL || null,
+          provider: 'kakao'
+        });
+      } else {
+        // 기존 사용자인 경우 displayName만 업데이트
+        await updateDoc(userDocRef, {
+          displayName: kakaoDisplayName,
+          provider: 'kakao'
+        });
+      }
+    }
+
     return userCredential.user;
   } catch (error: any) {
     throw new Error(getAuthErrorMessage(error.code));
