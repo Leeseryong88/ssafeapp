@@ -57,56 +57,43 @@ export const loginWithKakao = async () => {
     // Kakao OIDC로 로그인
     const userCredential = await signInWithPopup(auth, provider);
     const kakaoUser = userCredential.user;
-    const kakaoEmail = kakaoUser.email;
-    const kakaoDisplayName = kakaoUser.displayName;
-
-    if (!kakaoEmail) {
-      throw new Error('카카오 계정의 이메일 정보를 가져올 수 없습니다.');
-    }
-
-    try {
-      // 이미 가입된 이메일인지 확인
-      await signInWithEmailAndPassword(auth, kakaoEmail, kakaoEmail);
-    } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
-        // 새로운 사용자인 경우 이메일로 계정 생성
-        await createUserWithEmailAndPassword(auth, kakaoEmail, kakaoEmail);
-      } else {
-        throw error;
-      }
+    
+    if (!kakaoUser) {
+      throw new Error('카카오 로그인에 실패했습니다.');
     }
 
     // Firestore에 사용자 정보 저장
-    if (kakaoEmail && kakaoDisplayName) {
-      const userDocRef = doc(db, 'users', kakaoEmail);
-      
-      // Firestore에 사용자 문서가 있는지 확인
-      const userDoc = await getDoc(userDocRef);
-      
-      if (!userDoc.exists()) {
-        // 새 사용자인 경우 문서 생성
-        await setDoc(userDocRef, {
-          email: kakaoEmail,
-          displayName: kakaoDisplayName,
-          createdAt: new Date(),
-          phoneNumber: '',
-          company: '',
-          position: '',
-          bio: '',
-          profileImage: kakaoUser.photoURL || null,
-          provider: 'kakao'
-        });
-      } else {
-        // 기존 사용자인 경우 displayName만 업데이트
-        await updateDoc(userDocRef, {
-          displayName: kakaoDisplayName,
-          provider: 'kakao'
-        });
-      }
+    const userDocRef = doc(db, 'users', kakaoUser.uid);
+    
+    // Firestore에 사용자 문서가 있는지 확인
+    const userDoc = await getDoc(userDocRef);
+    
+    if (!userDoc.exists()) {
+      // 새 사용자인 경우 문서 생성
+      await setDoc(userDocRef, {
+        email: kakaoUser.email || '',
+        displayName: kakaoUser.displayName || '',
+        createdAt: new Date(),
+        phoneNumber: '',
+        company: '',
+        position: '',
+        bio: '',
+        profileImage: kakaoUser.photoURL || null,
+        provider: 'kakao'
+      });
+    } else {
+      // 기존 사용자인 경우 정보 업데이트
+      await updateDoc(userDocRef, {
+        displayName: kakaoUser.displayName || '',
+        email: kakaoUser.email || '',
+        profileImage: kakaoUser.photoURL || null,
+        provider: 'kakao'
+      });
     }
 
     return kakaoUser;
   } catch (error: any) {
+    console.error('Kakao login error:', error);
     throw new Error(getAuthErrorMessage(error.code));
   }
 };
