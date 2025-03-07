@@ -31,6 +31,7 @@ export default function ProfilePage() {
       auth.onAuthStateChanged(async (currentUser) => {
         if (currentUser) {
           setUser(currentUser);
+          console.log('Current user photo URL:', currentUser.photoURL);
           // Firestore에서 사용자 프로필 데이터 가져오기
           try {
             const userDocRef = doc(db, 'users', currentUser.uid);
@@ -38,6 +39,7 @@ export default function ProfilePage() {
             
             if (userDoc.exists()) {
               const userData = userDoc.data();
+              console.log('User data from Firestore:', userData);
               setFormData({
                 displayName: userData.displayName || '',
                 phoneNumber: userData.phoneNumber || '',
@@ -45,7 +47,8 @@ export default function ProfilePage() {
                 position: userData.position || '',
                 bio: userData.bio || ''
               });
-              setProfileImage(userData.profileImage || null);
+              // 프로필 이미지 설정 시 provider 이미지 URL도 확인
+              setProfileImage(userData.profileImage || userData.providerPhotoURL || null);
             } else {
               // 사용자 문서가 없으면 새로 생성
               await setDoc(userDocRef, {
@@ -182,13 +185,16 @@ export default function ProfilePage() {
     if (!url || url === '') return '/placeholder-profile.png';
     
     try {
+      console.log('Processing image URL:', url);
+      
       // 데이터 URL인 경우 (미리보기 이미지)
       if (url.startsWith('data:')) {
         return url;
       }
       
       // Kakao CDN URL인 경우
-      if (url.includes('kakaocdn.net')) {
+      if (url.includes('kakaocdn.net') || url.includes('kakao.com')) {
+        console.log('Kakao image URL detected:', url);
         return url;
       }
       
@@ -201,6 +207,11 @@ export default function ProfilePage() {
       
       // Google 프로필 이미지인 경우
       if (url.includes('googleusercontent.com')) {
+        return url;
+      }
+      
+      // 절대 URL인 경우
+      if (url.startsWith('http://') || url.startsWith('https://')) {
         return url;
       }
       

@@ -62,6 +62,9 @@ export const loginWithKakao = async () => {
       throw new Error('카카오 로그인에 실패했습니다.');
     }
 
+    console.log('Kakao user photo URL:', kakaoUser.photoURL);
+    console.log('Kakao user provider data:', kakaoUser.providerData);
+
     // Firestore에 사용자 정보 저장
     const userDocRef = doc(db, 'users', kakaoUser.uid);
     
@@ -70,7 +73,7 @@ export const loginWithKakao = async () => {
     
     if (!userDoc.exists()) {
       // 새 사용자인 경우 문서 생성
-      await setDoc(userDocRef, {
+      const userData = {
         email: kakaoUser.email || '',
         displayName: kakaoUser.displayName || '',
         createdAt: new Date(),
@@ -79,17 +82,23 @@ export const loginWithKakao = async () => {
         position: '',
         bio: '',
         profileImage: kakaoUser.photoURL || '',
-        provider: 'kakao'
-      });
+        provider: 'kakao',
+        providerPhotoURL: kakaoUser.photoURL || ''
+      };
+      console.log('New user data:', userData);
+      await setDoc(userDocRef, userData);
     } else {
       // 기존 사용자인 경우 정보 업데이트
-      await updateDoc(userDocRef, {
+      const updateData = {
         displayName: kakaoUser.displayName || '',
         email: kakaoUser.email || '',
         profileImage: kakaoUser.photoURL || userDoc.data().profileImage || '',
+        providerPhotoURL: kakaoUser.photoURL || '',
         provider: 'kakao',
         lastLoginAt: new Date()
-      });
+      };
+      console.log('Update user data:', updateData);
+      await updateDoc(userDocRef, updateData);
     }
 
     return kakaoUser;
