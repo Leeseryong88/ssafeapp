@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 
 // API 키를 명시적으로 로깅하여 디버깅 (실제 운영 환경에서는 비활성화 필요)
 const API_KEY = process.env.GOOGLE_GEMINI_API_KEY || "";
-console.log('API 키 설정 상태:', API_KEY ? '설정됨 (길이: ' + API_KEY.length + ')' : '설정되지 않음');
 
 // 단순화된 위험 요소 추출 함수
 function extractRiskFactors(analysisItems) {
@@ -254,9 +253,7 @@ ${latestImage ? "제공된 이미지를 분석하고, " : ""}위에 언급된 �
     
     // Gemini API 호출
     try {
-      console.log('새 GoogleGenerativeAI 인스턴스 생성');
       const genAI = new GoogleGenerativeAI(API_KEY);
-      console.log('Gemini 모델 인스턴스 생성 - gemini-2.0-flash 사용');
       const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
       
       // 안전 타임아웃 설정

@@ -22,11 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log('최종 분석 API - API 키 설정 상태:', apiKey ? '설정됨' : '설정되지 않음');
-
     // Gemini API 초기화 - 모델 버전 업데이트
     const genAI = new GoogleGenerativeAI(apiKey);
-    console.log('최종 분석 API - gemini-2.0-flash 모델 사용');
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     // 선택된 항목을 병합하여 최종 위험성평가표 생성 요청

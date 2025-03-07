@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import AuthButtons from '../components/AuthButtons';
 
 export default function LandingPage() {
   const handleServiceClick = (e: React.MouseEvent) => {
@@ -14,6 +15,12 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gray-100">
       {/* 히어로 섹션 */}
       <section className="relative bg-blue-600 text-white">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-end items-center">
+            <AuthButtons />
+          </div>
+        </div>
+        
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-6">
