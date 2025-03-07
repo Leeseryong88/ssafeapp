@@ -75,6 +75,7 @@ export default function LandingPage() {
                 src="/hero-image.jpg"
                 alt="AI 기반 산업 안전 시스템"
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                 style={{ objectFit: 'cover' }}
                 className="rounded-lg shadow-xl"
                 priority
