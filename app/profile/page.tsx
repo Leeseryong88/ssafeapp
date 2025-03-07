@@ -190,6 +190,27 @@ export default function ProfilePage() {
     setMessage(null);
   };
 
+  // 이미지 URL 안전하게 처리하는 함수 추가
+  const getSafeImageUrl = (url: string | null) => {
+    if (!url) return null;
+    
+    // Firebase Storage URL인 경우 처리
+    if (url.startsWith('https://firebasestorage.googleapis.com') || 
+        url.startsWith('https://storage.googleapis.com') ||
+        url.includes('firebasestorage.app')) {
+      // URL을 그대로 반환 (Next.js config에서 도메인을 허용했음)
+      return url;
+    }
+    
+    // 데이터 URL인 경우 (미리보기 이미지)
+    if (url.startsWith('data:')) {
+      return url;
+    }
+    
+    // 기타 URL은 상대 경로로 간주
+    return url;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-100">
@@ -224,9 +245,10 @@ export default function ProfilePage() {
                   <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-200">
                     {profileImage ? (
                       <Image
-                        src={profileImage}
+                        src={getSafeImageUrl(profileImage) || '/placeholder-profile.png'}
                         alt="프로필 이미지"
                         fill
+                        sizes="128px"
                         style={{ objectFit: 'cover' }}
                       />
                     ) : (
@@ -355,9 +377,10 @@ export default function ProfilePage() {
                   <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-200 mb-4 border-4 border-white shadow-lg">
                     {profileImage ? (
                       <Image
-                        src={profileImage}
+                        src={getSafeImageUrl(profileImage) || '/placeholder-profile.png'}
                         alt="프로필 이미지"
                         fill
+                        sizes="128px"
                         style={{ objectFit: 'cover' }}
                       />
                     ) : (
