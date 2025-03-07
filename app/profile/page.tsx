@@ -23,6 +23,7 @@ export default function ProfilePage() {
     bio: ''
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [newProfileImage, setNewProfileImage] = useState<File | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -97,58 +98,44 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user) return;
-    
-    setSaving(true);
-    setMessage(null);
-    
+  const handleSave = async () => {
     try {
-      const userDocRef = doc(db, 'users', user.uid);
+      setLoading(true);
+      setMessage(null);
       
-      // 이미지 업로드 (있는 경우)
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('로그인이 필요합니다.');
+      }
+
+      // 프로필 이미지 업로드 처리
       let profileImageUrl = profileImage;
-      if (imageFile) {
-        try {
-          const storageRef = ref(storage, `profile-images/${user.uid}`);
-          await uploadBytes(storageRef, imageFile);
-          profileImageUrl = await getDownloadURL(storageRef);
-        } catch (storageError) {
-          console.error('이미지 업로드 오류:', storageError);
-          setMessage({ type: 'error', text: '이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요.' });
-          setSaving(false);
-          return;
-        }
+      if (newProfileImage) {
+        const storageRef = ref(storage, `profile-images/${currentUser.uid}`);
+        const uploadResult = await uploadBytes(storageRef, newProfileImage);
+        profileImageUrl = await getDownloadURL(uploadResult.ref);
       }
-      
-      try {
-        // Firestore 문서 업데이트
-        await setDoc(userDocRef, {
-          ...formData,
-          profileImage: profileImageUrl,
-          updatedAt: new Date(),
-          uid: user.uid,  // UID를 명시적으로 포함
-          email: user.email // 이메일도 포함
-        }, { merge: true });  // merge 옵션 추가
-        
-        setMessage({ type: 'success', text: '프로필이 성공적으로 저장되었습니다.' });
-        setEditMode(false); // 저장 후 조회 모드로 전환
-        setImageFile(null); // 업로드 파일 상태 초기화
-      } catch (dbError: any) {
-        console.error('Firestore 저장 오류:', dbError);
-        if (dbError.code === 'permission-denied') {
-          setMessage({ type: 'error', text: '저장 권한이 없습니다. 로그인 상태를 확인해주세요.' });
-        } else {
-          setMessage({ type: 'error', text: `프로필 저장 실패: ${dbError.message}` });
-        }
-      }
-    } catch (error: any) {
-      console.error('프로필 저장 오류:', error);
-      setMessage({ type: 'error', text: `오류가 발생했습니다: ${error.message}` });
+
+      // Firestore 사용자 문서 업데이트
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userDocRef, {
+        ...formData,
+        profileImage: profileImageUrl,
+        updatedAt: new Date(),
+        // 기존 데이터 보존을 위한 병합 옵션
+        email: currentUser.email,
+        provider: currentUser.providerData[0]?.providerId || 'unknown'
+      }, { merge: true }); // merge: true 옵션 추가
+
+      setProfileImage(profileImageUrl);
+      setNewProfileImage(null);
+      setEditMode(false);
+      setMessage({ type: 'success', text: '프로필이 성공적으로 업데이트되었습니다.' });
+    } catch (error) {
+      console.error('프로필 업데이트 오류:', error);
+      setMessage({ type: 'error', text: '프로필 업데이트에 실패했습니다.' });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
@@ -190,25 +177,39 @@ export default function ProfilePage() {
     setMessage(null);
   };
 
-  // 이미지 URL 안전하게 처리하는 함수 추가
+  // 이미지 URL 안전하게 처리하는 함수
   const getSafeImageUrl = (url: string | null) => {
-    if (!url) return null;
+    if (!url || url === '') return '/placeholder-profile.png';
     
-    // Firebase Storage URL인 경우 처리
-    if (url.startsWith('https://firebasestorage.googleapis.com') || 
-        url.startsWith('https://storage.googleapis.com') ||
-        url.includes('firebasestorage.app')) {
-      // URL을 그대로 반환 (Next.js config에서 도메인을 허용했음)
+    try {
+      // 데이터 URL인 경우 (미리보기 이미지)
+      if (url.startsWith('data:')) {
+        return url;
+      }
+      
+      // Kakao CDN URL인 경우
+      if (url.includes('kakaocdn.net')) {
+        return url;
+      }
+      
+      // Firebase Storage URL인 경우
+      if (url.startsWith('https://firebasestorage.googleapis.com') || 
+          url.startsWith('https://storage.googleapis.com') ||
+          url.includes('firebasestorage.app')) {
+        return url;
+      }
+      
+      // Google 프로필 이미지인 경우
+      if (url.includes('googleusercontent.com')) {
+        return url;
+      }
+      
+      // 기타 URL은 상대 경로로 간주
       return url;
+    } catch (error) {
+      console.error('이미지 URL 처리 오류:', error);
+      return '/placeholder-profile.png';
     }
-    
-    // 데이터 URL인 경우 (미리보기 이미지)
-    if (url.startsWith('data:')) {
-      return url;
-    }
-    
-    // 기타 URL은 상대 경로로 간주
-    return url;
   };
 
   if (loading) {
@@ -239,7 +240,7 @@ export default function ProfilePage() {
           
           {editMode ? (
             // 편집 모드
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSave} className="p-6">
               <div className="flex flex-col sm:flex-row gap-8 mb-6">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-200">

@@ -78,7 +78,7 @@ export const loginWithKakao = async () => {
         company: '',
         position: '',
         bio: '',
-        profileImage: kakaoUser.photoURL || null,
+        profileImage: kakaoUser.photoURL || '',
         provider: 'kakao'
       });
     } else {
@@ -86,8 +86,9 @@ export const loginWithKakao = async () => {
       await updateDoc(userDocRef, {
         displayName: kakaoUser.displayName || '',
         email: kakaoUser.email || '',
-        profileImage: kakaoUser.photoURL || null,
-        provider: 'kakao'
+        profileImage: kakaoUser.photoURL || userDoc.data().profileImage || '',
+        provider: 'kakao',
+        lastLoginAt: new Date()
       });
     }
 
