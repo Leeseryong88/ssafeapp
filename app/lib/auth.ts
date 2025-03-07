@@ -111,9 +111,28 @@ export const loginWithKakao = async () => {
 // 로그아웃
 export const signOut = async () => {
   try {
+    // Firebase 로그아웃
     await firebaseSignOut(auth);
+    
+    // 로컬 스토리지 초기화
+    localStorage.clear();
+    
+    // 세션 스토리지 초기화
+    sessionStorage.clear();
+    
+    // 쿠키 초기화 (필요한 경우)
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    // 랜딩 페이지로 이동
+    window.location.href = '/';
+    
     return true;
   } catch (error) {
+    console.error('로그아웃 오류:', error);
     return false;
   }
 };
