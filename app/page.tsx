@@ -1,14 +1,39 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AuthButtons from '../components/AuthButtons';
+import { getCurrentUser } from './lib/auth';
 
 export default function LandingPage() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    // 초기 사용자 상태 확인
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setLoading(false);
+  }, []);
+
   const handleServiceClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    alert('서비스 예정입니다 아래 사진으로 보는 위험과 위험성평가 도구를 베타테스트 해보세요.');
+    
+    if (user) {
+      // 로그인 상태면 카메라 페이지로 이동
+      router.push('/camera');
+    } else {
+      // 로그인하지 않은 상태면 회원가입 페이지로 이동
+      router.push('/auth?mode=register');
+    }
+  };
+
+  const handleLearnMoreClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    alert('안내페이지는 업데이트 예정입니다.');
   };
 
   return (
@@ -25,7 +50,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-                안전 위험성 평가 서비스
+                AI SAFETY
               </h1>
               <p className="text-xl md:text-2xl text-blue-100">
                 AI 기술로 산업현장의 위험요소를 발견하고 개선하세요
@@ -35,10 +60,10 @@ export default function LandingPage() {
                   onClick={handleServiceClick}
                   className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                 >
-                  시작하기
+                  {user ? '분석하기' : '시작하기'}
                 </button>
                 <button 
-                  onClick={handleServiceClick}
+                  onClick={handleLearnMoreClick}
                   className="bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors"
                 >
                   더 알아보기
@@ -72,7 +97,17 @@ export default function LandingPage() {
         {/* 서비스 카드 섹션 */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           {/* 사진으로 보는 위험 */}
-          <Link href="/camera" className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+          <div 
+            className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              if (user) {
+                router.push('/camera');
+              } else {
+                router.push('/auth?mode=login');
+              }
+            }}
+          >
             <div className="p-8">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,11 +120,26 @@ export default function LandingPage() {
                 작업 현장의 사진을 찍으면 AI가 실시간으로 위험 요소를 감지하고 
                 관련 법령과 개선 방안을 제시합니다.
               </p>
+              {!user && (
+                <div className="mt-2 bg-blue-50 p-2 rounded-lg text-blue-600 text-sm font-medium">
+                  로그인이 필요한 서비스입니다
+                </div>
+              )}
             </div>
-          </Link>
+          </div>
 
           {/* 위험성평가 도구 */}
-          <Link href="/assessment" className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+          <div 
+            className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              if (user) {
+                router.push('/assessment');
+              } else {
+                router.push('/auth?mode=login');
+              }
+            }}
+          >
             <div className="p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,9 +154,14 @@ export default function LandingPage() {
                 <p className="text-red-500 font-medium">
                   * 본 서비스는 데스크톱 환경에서 사용하시기 바랍니다.
                 </p>
+                {!user && (
+                  <div className="mt-2 bg-blue-50 p-2 rounded-lg text-blue-600 text-sm font-medium">
+                    로그인이 필요한 서비스입니다
+                  </div>
+                )}
               </div>
             </div>
-          </Link>
+          </div>
         </div>
       </section>
 
