@@ -50,20 +50,35 @@ export const loginWithGoogle = async () => {
 export const loginWithKakao = async () => {
   try {
     const provider = new OAuthProvider('oidc.kakao');
-    provider.addScope('profile');
-    provider.addScope('account_email');
     provider.setCustomParameters({
       prompt: 'select_account'
     });
     
+    // Kakao OIDC로 로그인
     const userCredential = await signInWithPopup(auth, provider);
-    
-    // 카카오 로그인 성공 후 Firestore에 사용자 프로필 정보 업데이트
-    const user = userCredential.user;
-    const kakaoDisplayName = user.displayName; // 카카오에서 제공하는 닉네임
-    
-    if (user && kakaoDisplayName) {
-      const userDocRef = doc(db, 'users', user.uid);
+    const kakaoUser = userCredential.user;
+    const kakaoEmail = kakaoUser.email;
+    const kakaoDisplayName = kakaoUser.displayName;
+
+    if (!kakaoEmail) {
+      throw new Error('카카오 계정의 이메일 정보를 가져올 수 없습니다.');
+    }
+
+    try {
+      // 이미 가입된 이메일인지 확인
+      await signInWithEmailAndPassword(auth, kakaoEmail, kakaoEmail);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        // 새로운 사용자인 경우 이메일로 계정 생성
+        await createUserWithEmailAndPassword(auth, kakaoEmail, kakaoEmail);
+      } else {
+        throw error;
+      }
+    }
+
+    // Firestore에 사용자 정보 저장
+    if (kakaoEmail && kakaoDisplayName) {
+      const userDocRef = doc(db, 'users', kakaoEmail);
       
       // Firestore에 사용자 문서가 있는지 확인
       const userDoc = await getDoc(userDocRef);
@@ -71,14 +86,14 @@ export const loginWithKakao = async () => {
       if (!userDoc.exists()) {
         // 새 사용자인 경우 문서 생성
         await setDoc(userDocRef, {
-          email: user.email,
+          email: kakaoEmail,
           displayName: kakaoDisplayName,
           createdAt: new Date(),
           phoneNumber: '',
           company: '',
           position: '',
           bio: '',
-          profileImage: user.photoURL || null,
+          profileImage: kakaoUser.photoURL || null,
           provider: 'kakao'
         });
       } else {
@@ -90,7 +105,7 @@ export const loginWithKakao = async () => {
       }
     }
 
-    return userCredential.user;
+    return kakaoUser;
   } catch (error: any) {
     throw new Error(getAuthErrorMessage(error.code));
   }
