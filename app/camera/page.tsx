@@ -13,11 +13,17 @@ export default function CameraPage() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 이미지 파일 저장
+    setImageFile(file);
+    setAnalysisError(null);
 
     // 이미지 미리보기 생성
     const reader = new FileReader();
@@ -26,8 +32,15 @@ export default function CameraPage() {
     };
     reader.readAsDataURL(file);
 
-    // API 호출 및 분석
+    // 이미지 분석 실행
+    await analyzeImage(file);
+  };
+
+  // 이미지 분석 함수
+  const analyzeImage = async (file: File) => {
     setIsLoading(true);
+    setAnalysisError(null);
+    
     try {
       const formData = new FormData();
       formData.append('image', file);
@@ -72,13 +85,39 @@ export default function CameraPage() {
         }
       });
 
-      // 관계법령 제거
+      // 분석 결과 설정
       setAnalysis(analysisData);
+      setAnalysisError(null);
     } catch (error: any) {
       console.error('Error:', error);
+      setAnalysisError(error.message || '이미지 분석 중 오류가 발생했습니다.');
       alert(error.message || '이미지 분석 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 다시 분석하기 함수
+  const handleReanalyze = async () => {
+    if (!imageFile && !capturedImage) {
+      alert('분석할 이미지가 없습니다. 먼저 사진을 촬영해주세요.');
+      return;
+    }
+    
+    if (imageFile) {
+      await analyzeImage(imageFile);
+    } else if (capturedImage) {
+      // base64 이미지를 File 객체로 변환
+      try {
+        const response = await fetch(capturedImage);
+        const blob = await response.blob();
+        const file = new File([blob], "recaptured-image.jpg", { type: 'image/jpeg' });
+        setImageFile(file);
+        await analyzeImage(file);
+      } catch (error) {
+        console.error("이미지 변환 중 오류 발생:", error);
+        setAnalysisError("이미지를 다시 분석할 수 없습니다. 새 이미지를 촬영해주세요.");
+      }
     }
   };
 
@@ -96,9 +135,13 @@ export default function CameraPage() {
           <h3 className="text-xl font-semibold mb-3 text-gray-800">위험 요인</h3>
           <div className="bg-white rounded-lg shadow p-4">
             <ul className="list-disc list-inside space-y-2">
-              {analysis.risk_factors.map((risk, index) => (
-                <li key={index} className="text-gray-700">{risk}</li>
-              ))}
+              {analysis.risk_factors.length > 0 ? (
+                analysis.risk_factors.map((risk, index) => (
+                  <li key={index} className="text-gray-700">{risk}</li>
+                ))
+              ) : (
+                <li className="text-gray-500">감지된 위험 요인이 없습니다.</li>
+              )}
             </ul>
           </div>
         </div>
@@ -107,9 +150,13 @@ export default function CameraPage() {
           <h3 className="text-xl font-semibold mb-3 text-gray-800">개선 방안</h3>
           <div className="bg-white rounded-lg shadow p-4">
             <ul className="list-disc list-inside space-y-2">
-              {analysis.improvements.map((improvement, index) => (
-                <li key={index} className="text-gray-700">{improvement}</li>
-              ))}
+              {analysis.improvements.length > 0 ? (
+                analysis.improvements.map((improvement, index) => (
+                  <li key={index} className="text-gray-700">{improvement}</li>
+                ))
+              ) : (
+                <li className="text-gray-500">제안된 개선 방안이 없습니다.</li>
+              )}
             </ul>
           </div>
         </div>
@@ -159,16 +206,31 @@ export default function CameraPage() {
                     </div>
                   )}
                   
-                  <button
-                    onClick={openCamera}
-                    className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {capturedImage ? '다시 촬영' : '사진 촬영'}
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={openCamera}
+                      className={`flex-1 ${capturedImage ? 'bg-blue-600' : 'bg-blue-600'} text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center`}
+                    >
+                      <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {capturedImage ? '다시 촬영' : '사진 촬영'}
+                    </button>
+                    
+                    {capturedImage && (
+                      <button
+                        onClick={handleReanalyze}
+                        className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
+                        disabled={isLoading}
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        다시 분석하기
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -182,6 +244,13 @@ export default function CameraPage() {
                 ) : analysis ? (
                   <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
                     {renderAnalysisTable(analysis)}
+                  </div>
+                ) : analysisError ? (
+                  <div className="bg-white rounded-lg shadow p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
+                    <svg className="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-600 mb-6">{analysisError}</p>
                   </div>
                 ) : (
                   <div className="bg-white rounded-lg shadow p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
