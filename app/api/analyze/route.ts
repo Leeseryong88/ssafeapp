@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       const result = await Promise.race([
         model.generateContent([
           {
-            text: `${processNamePrompt}업로드된 이미지를 분석하여 위험성평가표를 생성해주세요. 이미지에서 발견된 위험 요소들을 식별하고, 각 위험 요소에 대한 중대성과 가능성을 1~5 척도로 평가해주세요. 
+            text: `${processNamePrompt}업로드된 이미지를 분석하여 위험성평가표를 생성해주세요. 이미지에서 발견된 위험 요소들을 식별하고, 각 위험 요소에 대한 중대성과 가능성을 1~5 척도로 평가해주세요.
 
 만약 이미지에서 산업안전 관련 위험 요소가 발견되지 않는다면 (예: 일반 문서, 풍경 사진 등) 다음과 같이 응답해주세요:
 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
@@ -83,6 +83,15 @@ export async function POST(request: NextRequest) {
 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
 <thead><tr style="background-color: #f2f2f2;"><th>위험 요소</th><th>중대성</th><th>가능성</th><th>위험도</th><th>대책</th></tr></thead>
 <tbody><tr><td>위험 요소 1</td><td>1~5</td><td>1~5</td><td>높음/중간/낮음</td><td>대책 내용</td></tr></tbody>
+</table>
+
+그리고 위험 요소와 관련된 규정은 다음과 같은 별도의 테이블로 제공해주세요:
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+<thead><tr style="background-color: #f2f2f2;"><th>관련 규정</th></tr></thead>
+<tbody>
+<tr><td>관련 규정 1 (산업안전보건법의 구체적인 조항 명시)</td></tr>
+<tr><td>관련 규정 2 (필요시)</td></tr>
+</tbody>
 </table>
 
 위험요소 부분은 서술형으로 작성해주세요. 관계법령은 산업안전보건법의 구체적인 조항(예: 제00조 제0항)을 명시해주세요. 다른 설명이나 형식적인 표현 없이 HTML 테이블만 제공해주세요. 코드 블록 마크다운(\`\`\`html)을 사용하지 말고 순수 HTML만 반환해주세요. 한국어로 응답해주세요.`

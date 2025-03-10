@@ -34,6 +34,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
     
+    // analyses 컬렉션에 대한 규칙 추가
+    match /analyses/{analysisId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
     // 공개 데이터 (모든 인증 사용자가 읽을 수 있음)
     match /publicData/{document=**} {
       allow read: if isSignedIn();

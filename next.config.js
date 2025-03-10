@@ -6,7 +6,10 @@ const nextConfig = {
     domains: [
       'firebasestorage.googleapis.com',
       'storage.googleapis.com',
-      'safetyapp-7e55d.firebasestorage.app'
+      'k.kakaocdn.net',
+      'safetyapp-7e55d.firebasestorage.app',
+      'img.kakaocdn.net',
+      'k.kakao.com'
     ],
     remotePatterns: [
       {
@@ -18,6 +21,18 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '**.firebasestorage.app',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.kakaocdn.net',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.kakao.com',
         port: '',
         pathname: '/**',
       }

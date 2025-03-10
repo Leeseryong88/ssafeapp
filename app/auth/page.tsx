@@ -7,6 +7,7 @@ import {
   registerWithEmail, 
   loginWithEmail, 
   loginWithGoogle,
+  loginWithKakao,
   getCurrentUser
 } from '../lib/auth';
 
@@ -88,6 +89,19 @@ function AuthForm() {
       setLoading(true);
       setError(null);
       await loginWithGoogle();
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await loginWithKakao();
       router.push('/');
     } catch (err: any) {
       setError(err.message);
@@ -198,7 +212,18 @@ function AuthForm() {
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 space-y-2">
+            <button
+              onClick={handleKakaoLogin}
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-900 bg-yellow-300 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
+            >
+              <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2.14285C6.3995 2.14285 1.71428 5.84073 1.71428 10.3928C1.71428 13.3669 3.60493 15.9621 6.44042 17.3468C6.2868 17.8343 5.26786 21.0267 5.22991 21.2902C5.22991 21.2902 5.21354 21.4591 5.33705 21.5432C5.46055 21.6274 5.59567 21.5712 5.59567 21.5712C5.93824 21.5135 9.62946 19.0861 10.1558 18.7142C10.7565 18.7991 11.3716 18.8428 12 18.8428C17.6005 18.8428 22.2857 15.1449 22.2857 10.5928C22.2857 5.84073 17.6005 2.14285 12 2.14285Z" fill="currentColor" />
+              </svg>
+              카카오 계정으로 로그인
+            </button>
+            
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
