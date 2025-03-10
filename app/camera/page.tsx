@@ -398,6 +398,8 @@ export default function CameraPage() {
 
   // 분석 결과를 HTML 테이블로 변환하는 함수
   const renderAnalysisTable = (analysis: Analysis) => {
+    if (!analysis) return null;
+
     return (
       <div className="space-y-6">
         <div>
@@ -405,7 +407,7 @@ export default function CameraPage() {
           <div className="bg-white rounded-lg shadow-md p-5">
             {isEditing ? (
               <div className="space-y-2">
-                {editRiskFactors.map((risk, index) => (
+                {(editRiskFactors || []).map((risk, index) => (
                   <div key={index} className="flex items-center">
                     <input
                       type="text"
@@ -440,7 +442,7 @@ export default function CameraPage() {
               </div>
             ) : (
               <ul className="list-disc list-inside space-y-3">
-                {analysis.risk_factors.length > 0 ? (
+                {analysis.risk_factors && analysis.risk_factors.length > 0 ? (
                   analysis.risk_factors.map((risk, index) => (
                     <li key={index} className="text-gray-700">{risk}</li>
                   ))
@@ -492,7 +494,7 @@ export default function CameraPage() {
               </div>
             ) : (
               <ul className="list-disc list-inside space-y-3">
-                {analysis.improvements.length > 0 ? (
+                {analysis.improvements && analysis.improvements.length > 0 ? (
                   analysis.improvements.map((improvement, index) => (
                     <li key={index} className="text-gray-700">{improvement}</li>
                   ))
@@ -632,14 +634,96 @@ export default function CameraPage() {
   };
 
   const renderDetailView = () => {
+    if (!selectedAnalysis) return null;
+
     return (
-      <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center min-h-[200px]">
-        <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 0 0 0118 0z" />
-        </svg>
-        <p className="text-gray-600">
-          사진을 촬영하면 AI가 자동으로 위험 요소를 분석하여 표시합니다.
-        </p>
+      <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+        <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <button 
+              onClick={goBackToSaved}
+              className="mr-4 p-2 hover:bg-blue-700 rounded-full transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="bg-blue-700 text-white px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300 text-xl font-semibold"
+                placeholder="제목을 입력하세요"
+              />
+            ) : (
+              <h2 className="text-xl font-semibold">{selectedAnalysis.title}</h2>
+            )}
+          </div>
+          
+          <div className="flex space-x-2">
+            {isEditing ? (
+              <>
+                <button 
+                  onClick={cancelEdit}
+                  className="px-4 py-2 hover:bg-blue-700 rounded-md transition-colors"
+                >
+                  취소
+                </button>
+                <button 
+                  onClick={saveEdit}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                >
+                  저장
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={startEditing}
+                  className="p-2 hover:bg-blue-700 rounded-md transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+                <button 
+                  onClick={() => deleteSavedAnalysis(selectedAnalysis.id)}
+                  className="p-2 hover:bg-blue-700 rounded-md transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="text-sm text-gray-500 mb-4">
+            저장일: {new Date(selectedAnalysis.createdAt).toLocaleDateString()}
+          </div>
+          
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* 이미지 영역 */}
+            <div className="w-full lg:w-1/2">
+              <div className="relative aspect-[4/3] rounded-lg overflow-hidden shadow-md">
+                <Image
+                  src={selectedAnalysis.imageUrl}
+                  alt={selectedAnalysis.title}
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
+            
+            {/* 분석 결과 영역 */}
+            <div className="w-full lg:w-1/2">
+              {renderAnalysisTable(selectedAnalysis)}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -679,7 +763,7 @@ export default function CameraPage() {
         {currentView === 'saved' && (
           <div className="bg-white rounded-xl shadow-xl overflow-hidden p-6">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">저장된 분석 결과</h2>
-            {savedAnalyses.length > 0 ? (
+            {(savedAnalyses || []).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {savedAnalyses.map((savedAnalysis) => (
                   <div 
@@ -846,5 +930,4 @@ export default function CameraPage() {
       {showSaveDialog && renderSaveDialog()}
     </div>
   );
-} 
 } 
