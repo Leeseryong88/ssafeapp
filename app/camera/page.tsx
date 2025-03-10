@@ -31,6 +31,7 @@ export default function CameraPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+<<<<<<< HEAD
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([]);
   const [showSaved, setShowSaved] = useState(false);
   const [saveTitle, setSaveTitle] = useState('');
@@ -98,6 +99,8 @@ export default function CameraPage() {
       setIsLoading(false);
     }
   };
+=======
+>>>>>>> fcad41d5b582e7251dd6718a4a4b4f9c1100342c
 
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,6 +121,7 @@ export default function CameraPage() {
     await analyzeImage(file);
   };
 
+<<<<<<< HEAD
   // 이미지 압축 함수
   const compressImage = async (imageDataUrl: string, maxWidth = 800, quality = 0.6): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
@@ -157,6 +161,8 @@ export default function CameraPage() {
     });
   };
 
+=======
+>>>>>>> fcad41d5b582e7251dd6718a4a4b4f9c1100342c
   // 이미지 분석 함수
   const analyzeImage = async (file: File) => {
     setIsLoading(true);
@@ -210,6 +216,7 @@ export default function CameraPage() {
         });
       }
 
+<<<<<<< HEAD
       // 두 번째 테이블이 있으면 관련 규정 추출 (새로 추가)
       if (tables.length > 1) {
         const regulationRows = tables[1].querySelectorAll('tbody tr');
@@ -226,6 +233,11 @@ export default function CameraPage() {
       setAnalysis(analysisData);
       setAnalysisError(null);
       setShowSaveDialog(false);
+=======
+      // 분석 결과 설정
+      setAnalysis(analysisData);
+      setAnalysisError(null);
+>>>>>>> fcad41d5b582e7251dd6718a4a4b4f9c1100342c
     } catch (error: any) {
       console.error('Error:', error);
       setAnalysisError(error.message || '이미지 분석 중 오류가 발생했습니다.');
@@ -453,6 +465,7 @@ export default function CameraPage() {
       <div className="space-y-6">
         <div>
           <h3 className="text-xl font-semibold mb-3 text-gray-800">위험 요인</h3>
+<<<<<<< HEAD
           <div className="bg-white rounded-lg shadow-md p-5">
             {isEditing ? (
               <div className="space-y-2">
@@ -500,11 +513,24 @@ export default function CameraPage() {
                 )}
               </ul>
             )}
+=======
+          <div className="bg-white rounded-lg shadow p-4">
+            <ul className="list-disc list-inside space-y-2">
+              {analysis.risk_factors.length > 0 ? (
+                analysis.risk_factors.map((risk, index) => (
+                  <li key={index} className="text-gray-700">{risk}</li>
+                ))
+              ) : (
+                <li className="text-gray-500">감지된 위험 요인이 없습니다.</li>
+              )}
+            </ul>
+>>>>>>> fcad41d5b582e7251dd6718a4a4b4f9c1100342c
           </div>
         </div>
 
         <div>
           <h3 className="text-xl font-semibold mb-3 text-gray-800">개선 방안</h3>
+<<<<<<< HEAD
           <div className="bg-white rounded-lg shadow-md p-5">
             {isEditing ? (
               <div className="space-y-2">
@@ -737,6 +763,18 @@ export default function CameraPage() {
             <div className="w-full lg:w-1/2">
               {renderAnalysisTable(selectedAnalysis)}
             </div>
+=======
+          <div className="bg-white rounded-lg shadow p-4">
+            <ul className="list-disc list-inside space-y-2">
+              {analysis.improvements.length > 0 ? (
+                analysis.improvements.map((improvement, index) => (
+                  <li key={index} className="text-gray-700">{improvement}</li>
+                ))
+              ) : (
+                <li className="text-gray-500">제안된 개선 방안이 없습니다.</li>
+              )}
+            </ul>
+>>>>>>> fcad41d5b582e7251dd6718a4a4b4f9c1100342c
           </div>
         </div>
       </div>
@@ -934,8 +972,69 @@ export default function CameraPage() {
                       </p>
                     </div>
                   )}
+<<<<<<< HEAD
                 </div>
               </div>
+=======
+                  
+                  <div className="flex gap-4">
+                    <button
+                      onClick={openCamera}
+                      className={`flex-1 ${capturedImage ? 'bg-blue-600' : 'bg-blue-600'} text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center`}
+                    >
+                      <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {capturedImage ? '다시 촬영' : '사진 촬영'}
+                    </button>
+                    
+                    {capturedImage && (
+                      <button
+                        onClick={handleReanalyze}
+                        className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
+                        disabled={isLoading}
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        다시 분석하기
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 분석 결과 영역 */}
+              <div className="w-full">
+                {isLoading ? (
+                  <div className="bg-white rounded-lg shadow p-8 flex flex-col items-center justify-center min-h-[200px]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-lg text-gray-700">이미지 분석 중...</p>
+                  </div>
+                ) : analysis ? (
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+                    {renderAnalysisTable(analysis)}
+                  </div>
+                ) : analysisError ? (
+                  <div className="bg-white rounded-lg shadow p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
+                    <svg className="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-600 mb-6">{analysisError}</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
+                    <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-gray-600">
+                      사진을 촬영하면 AI가 자동으로 위험 요소를 분석하여 표시합니다.
+                    </p>
+                  </div>
+                )}
+              </div>
+>>>>>>> fcad41d5b582e7251dd6718a4a4b4f9c1100342c
             </div>
           </div>
         )}
