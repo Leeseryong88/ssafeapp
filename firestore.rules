@@ -25,7 +25,7 @@ service cloud.firestore {
       allow delete: if false; // 프로필 삭제는 금지
     }
     
-    // 평가 이미지 데이터 규칙
+    // 평가 이미지 데이터 규칙 (assessments 컬렉션)
     match /assessments/{assessmentId} {
       // 이미지 평가 데이터는 작성자만 접근 가능
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());

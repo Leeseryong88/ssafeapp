@@ -269,7 +269,18 @@ export default function CameraPage() {
       
       setSavedAnalyses([newSavedAnalysis, ...savedAnalyses]);
       setShowSaveDialog(false);
+      
+      // 저장 완료 후 상태 초기화
+      setAnalysis(null);
+      setCapturedImage(null);
+      setImageFile(null);
+      setSaveTitle('');
+      
       alert('분석 결과가 저장되었습니다.');
+      
+      // 저장된 분석 목록 화면으로 이동
+      setCurrentView('saved');
+      
     } catch (error) {
       console.error('저장 중 오류가 발생했습니다:', error);
       alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -577,20 +588,23 @@ export default function CameraPage() {
               onChange={(e) => setSaveTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="제목을 입력하세요"
+              disabled={isSaving}
             />
           </div>
           <div className="flex justify-end space-x-3">
             <button
               onClick={() => setShowSaveDialog(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50"
+              disabled={isSaving}
             >
               취소
             </button>
             <button
               onClick={saveAnalysis}
-              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSaving}
             >
-              저장
+              {isSaving ? '저장 중...' : '저장'}
             </button>
           </div>
         </div>
@@ -893,12 +907,13 @@ export default function CameraPage() {
                         
                         <button
                           onClick={openSaveDialog}
-                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-colors flex items-center justify-center shadow-md"
+                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-colors flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!analysis || isSaving}
                         >
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                           </svg>
-                          저장하기
+                          {isSaving ? '저장 중...' : '저장하기'}
                         </button>
                       </div>
                     </div>

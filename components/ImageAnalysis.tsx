@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface ImageAnalysisProps {
   analysis: string;
@@ -20,6 +20,8 @@ const ImageAnalysis = ({ analysis, itemId, onSelectionChange }: ImageAnalysisPro
   
   // 전체 선택 상태 추가
   const [selectAll, setSelectAll] = useState(false);
+  // 이전 선택 상태를 저장하기 위한 ref
+  const prevSelectedRowsRef = useRef<string[]>([]);
   
   // 분석 결과가 변경될 때마다 테이블 데이터 추출
   useEffect(() => {
@@ -55,6 +57,8 @@ const ImageAnalysis = ({ analysis, itemId, onSelectionChange }: ImageAnalysisPro
       
       setTableData(extractedData);
       setSelectAll(false); // 새 데이터가 로드될 때 전체 선택 상태 초기화
+      // 새 데이터가 로드될 때 이전 선택 내역도 초기화
+      prevSelectedRowsRef.current = [];
     } catch (error) {
       console.error('테이블 데이터 추출 오류:', error);
     }
@@ -91,14 +95,23 @@ const ImageAnalysis = ({ analysis, itemId, onSelectionChange }: ImageAnalysisPro
     );
   };
   
-  // 선택된 행이 변경될 때마다 부모 컴포넌트에 알림
-  useEffect(() => {
-    const selectedRows = tableData
+  // 선택된 항목 문자열로 변환하는 함수 (메모이제이션)
+  const getSelectedRowsString = useCallback((data: typeof tableData) => {
+    return data
       .filter(row => row.isSelected)
       .map(row => `${row.riskFactor}|${row.severity}|${row.probability}|${row.riskLevel}|${row.countermeasure}`);
+  }, []);
+  
+  // 선택된 행이 변경될 때마다 부모 컴포넌트에 알림 (최적화)
+  useEffect(() => {
+    const selectedRows = getSelectedRowsString(tableData);
     
-    onSelectionChange(itemId, selectedRows);
-  }, [tableData, itemId, onSelectionChange]);
+    // 이전 선택과 현재 선택이 다를 경우에만 업데이트
+    if (JSON.stringify(prevSelectedRowsRef.current) !== JSON.stringify(selectedRows)) {
+      prevSelectedRowsRef.current = selectedRows;
+      onSelectionChange(itemId, selectedRows);
+    }
+  }, [tableData, itemId, onSelectionChange, getSelectedRowsString]);
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md h-full">
