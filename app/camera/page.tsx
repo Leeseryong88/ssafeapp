@@ -103,23 +103,47 @@ export default function CameraPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 이미지 파일 저장
-    setImageFile(file);
-    setAnalysisError(null);
-
-    // 이미지 유형 확인 및 처리
     try {
-      // 이미지 미리보기 생성
+      // 파일을 base64로 변환
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setCapturedImage(reader.result as string);
+      reader.onload = async (event) => {
+        try {
+          const base64 = event.target?.result as string;
+          
+          // 압축된 이미지 생성
+          const compressedImage = await compressImage(base64);
+          
+          // 압축된 이미지를 상태에 저장
+          setCapturedImage(compressedImage);
+          
+          // base64를 Blob으로 변환
+          const response = await fetch(compressedImage);
+          const blob = await response.blob();
+          
+          // Blob을 File 객체로 변환
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          
+          // 압축된 파일 저장 및 분석
+          setImageFile(compressedFile);
+          await analyzeImage(compressedFile);
+          
+        } catch (error) {
+          console.error('이미지 압축 중 오류:', error);
+          setAnalysisError('이미지 처리 중 오류가 발생했습니다.');
+        }
       };
+      
+      reader.onerror = () => {
+        setAnalysisError('이미지 파일을 읽을 수 없습니다.');
+      };
+      
       reader.readAsDataURL(file);
-
-      // 이미지 분석 실행
-      await analyzeImage(file);
+      
     } catch (error) {
-      console.error('이미지 처리 중 오류 발생:', error);
+      console.error('이미지 처리 중 오류:', error);
       setAnalysisError('이미지 처리 중 오류가 발생했습니다.');
     }
   };
@@ -692,33 +716,54 @@ export default function CameraPage() {
     );
   };
   
-  const compressImage = async (imageDataUrl: string, maxWidth = 600, quality = 0.6): Promise<string> => {
+  const compressImage = async (imageDataUrl: string, maxSize = 4 * 1024 * 1024): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
       const img: HTMLImageElement = document.createElement('img');
       img.src = imageDataUrl;
       
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+        let quality = 0.7; // 초기 품질
+        let maxWidth = 1600; // 초기 최대 너비
         
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
+        const compress = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // 이미지 크기 조정
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('이미지 압축 실패'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // base64로 변환하여 크기 확인
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          
+          // base64 문자열의 실제 바이트 크기 계산
+          const base64Size = Math.ceil((compressedDataUrl.length * 3) / 4);
+          
+          if (base64Size > maxSize && quality > 0.1 && maxWidth > 800) {
+            // 여전히 크기가 크면 품질과 크기를 더 줄임
+            quality -= 0.1;
+            maxWidth -= 200;
+            compress(); // 재귀적으로 다시 시도
+          } else {
+            resolve(compressedDataUrl);
+          }
+        };
         
-        canvas.width = width;
-        canvas.height = height;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('이미지 압축 실패'));
-          return;
-        }
-        
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
+        compress();
       };
       
       img.onerror = () => {
