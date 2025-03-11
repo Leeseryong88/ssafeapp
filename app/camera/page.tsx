@@ -1089,67 +1089,129 @@ export default function CameraPage() {
         {currentView === 'main' && (
           <div className="bg-white rounded-xl shadow-xl overflow-hidden">
             <div className="p-6">
-              <div className="flex flex-col lg:flex-row gap-8">
-                {/* 카메라/이미지 영역 */}
-                <div className="w-full lg:w-1/2">
-                  <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 shadow-sm">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCapture}
-                      ref={fileInputRef}
-                      className="hidden"
-                    />
-                    
-                    {capturedImage ? (
-                      <div className="relative aspect-[4/3] mb-4 rounded-lg overflow-hidden shadow-md">
-                        <Image
-                          src={capturedImage}
-                          alt="Captured"
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div className="aspect-[4/3] bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
-                        <svg className="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={openCamera}
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-colors flex items-center justify-center shadow-md"
-                    >
-                      <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* 카메라/이미지 영역 */}
+              <div className="w-full mb-8">
+                <div 
+                  className="bg-gray-50 rounded-lg p-5 border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={openCamera}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCapture}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
+                  
+                  {capturedImage ? (
+                    <div className="relative aspect-[4/3] rounded-lg overflow-hidden shadow-md">
+                      <Image
+                        src={capturedImage}
+                        alt="Captured"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-[4/3] bg-gray-200 rounded-lg flex flex-col items-center justify-center">
+                      <svg className="w-20 h-20 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      {capturedImage ? '다시 촬영' : '사진 촬영'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 분석 결과 영역 */}
-                <div className="w-full lg:w-1/2">
-                  {isLoading ? (
-                    <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center min-h-[300px]">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                      <p className="text-lg text-gray-700">이미지 분석 중...</p>
+                      <p className="text-gray-500 text-center text-sm">
+                        클릭하여 사진을 첨부하세요
+                      </p>
                     </div>
-                  ) : analysis ? (
-                    <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
-                      {renderAnalysisTable(analysis)}
+                  )}
+                </div>
+              </div>
+
+              {/* 분석 결과 영역 */}
+              <div className="w-full">
+                {isLoading ? (
+                  <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center min-h-[200px]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <p className="text-base text-gray-700">이미지 분석 중...</p>
+                  </div>
+                ) : analysis ? (
+                  <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div className="space-y-4 text-sm">
+                      <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+                        <h3 className="text-base font-semibold mb-3 flex items-center">
+                          <span className="material-icons text-lg mr-2 text-orange-500">warning</span>
+                          위험 요인
+                        </h3>
+                        <div className="pl-3">
+                          <ul className="list-disc list-inside space-y-2">
+                            {analysis.risk_factors && analysis.risk_factors.length > 0 ? (
+                              analysis.risk_factors.map((factor, index) => (
+                                <li key={index} className="text-gray-700">{factor}</li>
+                              ))
+                            ) : (
+                              <li className="text-gray-500">식별된 위험 요인이 없습니다.</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+                        <h3 className="text-base font-semibold mb-3 flex items-center">
+                          <span className="material-icons text-lg mr-2 text-green-500">build</span>
+                          공학적 개선방안
+                        </h3>
+                        <div className="pl-3">
+                          <ul className="list-disc list-inside space-y-2">
+                            {analysis.engineering_improvements && analysis.engineering_improvements.length > 0 ? (
+                              analysis.engineering_improvements.map((improvement, index) => (
+                                <li key={index} className="text-gray-700">{improvement}</li>
+                              ))
+                            ) : (
+                              <li className="text-gray-500">제안된 공학적 개선 방안이 없습니다.</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+                        <h3 className="text-base font-semibold mb-3 flex items-center">
+                          <span className="material-icons text-lg mr-2 text-blue-500">people</span>
+                          관리적 개선방안
+                        </h3>
+                        <div className="pl-3">
+                          <ul className="list-disc list-inside space-y-2">
+                            {analysis.management_improvements && analysis.management_improvements.length > 0 ? (
+                              analysis.management_improvements.map((improvement, index) => (
+                                <li key={index} className="text-gray-700">{improvement}</li>
+                              ))
+                            ) : (
+                              <li className="text-gray-500">제안된 관리적 개선 방안이 없습니다.</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-lg shadow-md">
+                        <h3 className="text-base font-semibold mb-3">관련 규정</h3>
+                        <div className="pl-3">
+                          <ul className="list-disc list-inside space-y-2">
+                            {analysis.regulations && analysis.regulations.length > 0 ? (
+                              analysis.regulations.map((regulation, index) => (
+                                <li key={index} className="text-gray-700">{regulation}</li>
+                              ))
+                            ) : (
+                              <li className="text-gray-500">관련 규정이 없습니다.</li>
+                            )}
+                          </ul>
+                        </div>
+                      </div>
                       
                       <div className="mt-6 flex justify-center space-x-4">
                         <button
                           onClick={handleReanalyze}
-                          className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-colors flex items-center justify-center shadow-md"
+                          className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:from-green-700 hover:to-green-800 transition-colors flex items-center justify-center shadow-md"
                           disabled={isLoading}
                         >
-                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
                           다시 분석하기
@@ -1157,34 +1219,34 @@ export default function CameraPage() {
                         
                         <button
                           onClick={openSaveDialog}
-                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-colors flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-colors flex items-center justify-center shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={!analysis || isSaving}
                         >
-                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                           </svg>
                           {isSaving ? '저장 중...' : '저장하기'}
                         </button>
                       </div>
                     </div>
-                  ) : analysisError ? (
-                    <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
-                      <svg className="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-red-600 mb-6">{analysisError}</p>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
-                      <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-gray-600">
-                        사진을 촬영하면 AI가 자동으로 위험 요소를 분석하여 표시합니다.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : analysisError ? (
+                  <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col items-center justify-center min-h-[200px] text-center">
+                    <svg className="w-12 h-12 text-red-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-600 text-sm">{analysisError}</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col items-center justify-center min-h-[200px] text-center">
+                    <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-gray-600 text-sm">
+                      사진을 첨부하면 AI가 자동으로 위험 요소를 분석하여 표시합니다.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
