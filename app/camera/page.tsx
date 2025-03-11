@@ -107,15 +107,21 @@ export default function CameraPage() {
     setImageFile(file);
     setAnalysisError(null);
 
-    // 이미지 미리보기 생성
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCapturedImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // 이미지 유형 확인 및 처리
+    try {
+      // 이미지 미리보기 생성
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
 
-    // 이미지 분석 실행
-    await analyzeImage(file);
+      // 이미지 분석 실행
+      await analyzeImage(file);
+    } catch (error) {
+      console.error('이미지 처리 중 오류 발생:', error);
+      setAnalysisError('이미지 처리 중 오류가 발생했습니다.');
+    }
   };
 
   // 이미지 분석 함수
@@ -124,8 +130,23 @@ export default function CameraPage() {
     setAnalysisError(null);
     
     try {
+      // 모션포토나 특수 이미지 처리를 위한 변환 과정
+      let processedFile = file;
+      
+      // 파일 타입 확인 - 모션포토는 일반적으로 image/jpeg 타입으로 감지됨
+      if (file.type.includes('image/')) {
+        try {
+          // 모션포토 추가 처리 - 정적 이미지만 추출
+          processedFile = await extractStaticImageFromFile(file);
+        } catch (conversionError) {
+          console.warn('모션포토 변환 시도 중 오류, 원본 파일 사용:', conversionError);
+          // 변환 실패 시 원본 파일 사용
+          processedFile = file;
+        }
+      }
+
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', processedFile);
       formData.append('processName', '현장 사진');
 
       const response = await fetch('/api/analyze', {
@@ -182,6 +203,65 @@ export default function CameraPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 모션포토에서 정적 이미지 추출 함수
+  const extractStaticImageFromFile = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // 이미지 로드
+        const url = URL.createObjectURL(file);
+        const img: HTMLImageElement = document.createElement('img');
+        
+        img.onload = () => {
+          try {
+            // 캔버스에 그려서 정적 이미지만 추출
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas 컨텍스트를 생성할 수 없습니다.'));
+              return;
+            }
+            
+            ctx.drawImage(img, 0, 0);
+            
+            // 캔버스에서 JPEG 형식으로 데이터 추출
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                reject(new Error('이미지 변환에 실패했습니다.'));
+                return;
+              }
+              
+              // 새 파일 객체 생성 (모션포토 데이터 제외)
+              const convertedFile = new File([blob], file.name, { 
+                type: 'image/jpeg',
+                lastModified: file.lastModified 
+              });
+              
+              // URL 객체 해제
+              URL.revokeObjectURL(url);
+              
+              resolve(convertedFile);
+            }, 'image/jpeg', 0.95);
+          } catch (error) {
+            URL.revokeObjectURL(url);
+            reject(error);
+          }
+        };
+        
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('이미지를 로드할 수 없습니다.'));
+        };
+        
+        img.src = url;
+      } catch (error) {
+        reject(error);
+      }
+    });
   };
 
   // 다시 분석하기 함수
@@ -614,7 +694,7 @@ export default function CameraPage() {
   
   const compressImage = async (imageDataUrl: string, maxWidth = 800, quality = 0.6): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
-      const img = document.createElement('img');
+      const img: HTMLImageElement = document.createElement('img');
       img.src = imageDataUrl;
       
       img.onload = () => {
