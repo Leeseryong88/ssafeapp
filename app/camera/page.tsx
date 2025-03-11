@@ -338,7 +338,10 @@ export default function CameraPage() {
       setIsSaving(true);
       
       // 이미지 압축 (최대 너비 600px, 품질 30%)
-      const compressedImage = await compressImage(capturedImage, 600, 0.3);
+      const compressedImage = await compressImage(capturedImage, {
+        maxWidth: 600,
+        quality: 0.3
+      });
       
       // 1. Firebase Storage에 이미지 업로드
       const timestamp = Date.now();
@@ -716,54 +719,54 @@ export default function CameraPage() {
     );
   };
   
-  const compressImage = async (imageDataUrl: string, maxSize = 4 * 1024 * 1024): Promise<string> => {
+  const compressImage = async (
+    imageDataUrl: string, 
+    options: { maxWidth?: number; quality?: number; maxSize?: number } = {}
+  ): Promise<string> => {
+    const { 
+      maxWidth = 600,
+      quality = 0.3,
+      maxSize = 4 * 1024 * 1024 // 4MB
+    } = options;
+
     return new Promise<string>((resolve, reject) => {
       const img: HTMLImageElement = document.createElement('img');
       img.src = imageDataUrl;
       
       img.onload = () => {
-        let quality = 0.7; // 초기 품질
-        let maxWidth = 1600; // 초기 최대 너비
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
         
-        const compress = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // 이미지 크기 조정
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('이미지 압축 실패'));
-            return;
-          }
-          
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // base64로 변환하여 크기 확인
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-          
-          // base64 문자열의 실제 바이트 크기 계산
-          const base64Size = Math.ceil((compressedDataUrl.length * 3) / 4);
-          
-          if (base64Size > maxSize && quality > 0.1 && maxWidth > 800) {
-            // 여전히 크기가 크면 품질과 크기를 더 줄임
-            quality -= 0.1;
-            maxWidth -= 200;
-            compress(); // 재귀적으로 다시 시도
-          } else {
-            resolve(compressedDataUrl);
-          }
-        };
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
         
-        compress();
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('이미지 압축 실패'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        
+        // 압축된 이미지 크기 확인
+        const base64Size = Math.ceil((compressedDataUrl.length * 3) / 4);
+        if (base64Size > maxSize) {
+          // 크기가 여전히 크면 더 작은 품질로 재시도
+          return resolve(compressImage(imageDataUrl, { 
+            maxWidth: maxWidth - 100,
+            quality: quality - 0.1,
+            maxSize 
+          }));
+        }
+        
+        resolve(compressedDataUrl);
       };
       
       img.onerror = () => {
