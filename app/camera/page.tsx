@@ -10,7 +10,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 interface Analysis {
   risk_factors: string[];
-  improvements: string[];
+  engineering_improvements: string[]; // 공학적 개선방안
+  management_improvements: string[]; // 관리적 개선방안
   regulations: string[];
   date?: string; // 저장 날짜
   title?: string; // 저장 제목
@@ -22,6 +23,16 @@ interface SavedAnalysis extends Analysis {
   title: string;
   imageUrl: string;
   storageRef?: string; // Firebase Storage 참조 경로
+  riskAssessmentData?: RiskAssessmentData[]; // 위험성평가 데이터 추가
+}
+
+interface RiskAssessmentData {
+  processName: string;
+  riskFactor: string;
+  severity: string;
+  probability: string;
+  riskLevel: string;
+  countermeasure: string;
 }
 
 export default function CameraPage() {
@@ -197,23 +208,40 @@ export default function CameraPage() {
       const tables = tempDiv.querySelectorAll('table');
       const analysisData: Analysis = {
         risk_factors: [],
-        improvements: [],
+        engineering_improvements: [],
+        management_improvements: [],
         regulations: []
       };
 
       if (tables.length > 0) {
-        // 첫 번째 테이블에서 위험 요소와 대책 추출
+        // 첫 번째 테이블에서 위험 요소와 개선방안 추출
         const rows = tables[0].querySelectorAll('tbody tr');
         rows.forEach(row => {
           const cells = row.querySelectorAll('td');
-          if (cells.length >= 5) {
+          // 테이블 구조: 위험요소, 중대성, 가능성, 위험도, 공학적 개선방안, 관리적 개선방안
+          if (cells.length >= 6) {
             const riskFactor = cells[0]?.textContent?.trim();
-            const improvement = cells[4]?.textContent?.trim();
+            const engineeringImprovement = cells[4]?.textContent?.trim();
+            const managementImprovement = cells[5]?.textContent?.trim();
             
-            if (riskFactor && !riskFactor.includes('사진에서 발견된 위험성은 없습니다')) analysisData.risk_factors.push(riskFactor);
-            if (improvement && !improvement.includes('추가적인 안전 조치가 필요하지 않습니다')) analysisData.improvements.push(improvement);
+            if (riskFactor && !riskFactor.includes('사진에서 발견된 위험성은 없습니다')) 
+              analysisData.risk_factors.push(riskFactor);
+            if (engineeringImprovement && !engineeringImprovement.includes('추가적인 공학적 안전 조치가 필요하지 않습니다')) 
+              analysisData.engineering_improvements.push(engineeringImprovement);
+            if (managementImprovement && !managementImprovement.includes('추가적인 관리적 안전 조치가 필요하지 않습니다')) 
+              analysisData.management_improvements.push(managementImprovement);
           }
         });
+
+        // 두 번째 테이블에서 관련 규정 추출
+        if (tables.length > 1) {
+          const regulationRows = tables[1].querySelectorAll('tbody tr');
+          regulationRows.forEach(row => {
+            const cell = row.querySelector('td');
+            const regulation = cell?.textContent?.trim();
+            if (regulation) analysisData.regulations.push(regulation);
+          });
+        }
       }
 
       // 분석 결과 설정
@@ -330,67 +358,100 @@ export default function CameraPage() {
     setShowSaveDialog(true);
   };
 
+  // 위험성평가 데이터로 변환하는 함수 추가
+  const convertToRiskAssessmentData = (analysis: Analysis, processName: string = '현장 작업'): RiskAssessmentData[] => {
+    const result: RiskAssessmentData[] = [];
+    
+    // 데이터가 없으면 빈 배열 반환
+    if (!analysis.risk_factors || analysis.risk_factors.length === 0) {
+      return result;
+    }
+    
+    // 각 위험요소에 대해 위험성평가 데이터 생성
+    analysis.risk_factors.forEach((riskFactor, index) => {
+      // 공학적 개선방안과 관리적 개선방안 합치기
+      const engineeringImprovement = analysis.engineering_improvements[index] || '';
+      const managementImprovement = analysis.management_improvements[index] || '';
+      let countermeasure = '';
+      
+      if (engineeringImprovement && managementImprovement) {
+        countermeasure = `[공학적] ${engineeringImprovement} [관리적] ${managementImprovement}`;
+      } else if (engineeringImprovement) {
+        countermeasure = `[공학적] ${engineeringImprovement}`;
+      } else if (managementImprovement) {
+        countermeasure = `[관리적] ${managementImprovement}`;
+      }
+      
+      // 위험성평가 데이터 추가
+      result.push({
+        processName,
+        riskFactor,
+        severity: '3', // 기본값
+        probability: '3', // 기본값
+        riskLevel: '중간', // 기본값
+        countermeasure
+      });
+    });
+    
+    return result;
+  };
+
   // 분석 결과 저장 (Firebase)
   const saveAnalysis = async () => {
-    if (!analysis || !capturedImage || !user) return;
-    
+    if (!capturedImage || !analysis || !user) {
+      alert('저장할 분석 결과가 없습니다.');
+      return;
+    }
+
     try {
       setIsSaving(true);
-      
-      // 이미지 압축 (최대 너비 600px, 품질 30%)
-      const compressedImage = await compressImage(capturedImage, {
-        maxWidth: 600,
-        quality: 0.3
-      });
-      
-      // 1. Firebase Storage에 이미지 업로드
+
+      // 이미지 압축
+      const compressedImage = await compressImage(capturedImage, { quality: 0.8, maxWidth: 1200, maxSize: 500000 });
+      const imageData = compressedImage.split(',')[1]; // Base64 데이터만 추출
+
+      // 1. Storage에 이미지 저장
       const timestamp = Date.now();
-      const storageRefPath = `analyses/${user.uid}/${timestamp}.jpg`;
+      const storageRefPath = `analyses/${user.uid}/${timestamp}_${saveTitle.replace(/\s+/g, '_')}.jpg`;
       const storageReference = ref(storage, storageRefPath);
       
-      // Base64 형식에서 접두사 제거
-      const imageData = compressedImage.split(',')[1];
-      
       await uploadString(storageReference, imageData, 'base64');
-      const imageUrl = await getDownloadURL(storageReference);
+      const downloadURL = await getDownloadURL(storageReference);
       
-      // 2. Firestore에 분석 결과 저장
-      const analysisData = {
+      // 위험성평가 데이터 생성
+      const riskAssessmentData = convertToRiskAssessmentData(analysis, saveTitle);
+      
+      // 저장할 데이터에 위험성평가 데이터 추가
+      const savedData = {
+        imageUrl: downloadURL,
+        storageRef: storageRefPath,
         userId: user.uid,
         title: saveTitle || `현장분석 ${new Date().toLocaleDateString()}`,
         risk_factors: analysis.risk_factors,
-        improvements: analysis.improvements,
+        engineering_improvements: analysis.engineering_improvements,
+        management_improvements: analysis.management_improvements,
         regulations: analysis.regulations || [],
         createdAt: new Date().toISOString(),
-        imageUrl: imageUrl,
-        storageRef: storageRefPath
+        riskAssessmentData // 위험성평가 데이터 추가
       };
       
-      const docRef = await addDoc(collection(db, 'analyses'), analysisData);
+      const docRef = await addDoc(collection(db, 'analyses'), savedData);
       
       // 로컬 상태 업데이트
       const newSavedAnalysis: SavedAnalysis = {
-        ...analysisData,
+        ...savedData,
         id: docRef.id
       };
       
       setSavedAnalyses([newSavedAnalysis, ...savedAnalyses]);
       setShowSaveDialog(false);
-      
-      // 저장 완료 후 상태 초기화
-      setAnalysis(null);
-      setCapturedImage(null);
-      setImageFile(null);
       setSaveTitle('');
-      
       alert('분석 결과가 저장되었습니다.');
-      
-      // 저장된 분석 목록 화면으로 이동
       setCurrentView('saved');
       
     } catch (error) {
-      console.error('저장 중 오류가 발생했습니다:', error);
-      alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('저장 중 오류 발생:', error);
+      alert('저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
     } finally {
       setIsSaving(false);
     }
@@ -461,7 +522,7 @@ export default function CameraPage() {
     if (selectedAnalysis) {
       setEditTitle(selectedAnalysis.title);
       setEditRiskFactors([...selectedAnalysis.risk_factors]);
-      setEditImprovements([...selectedAnalysis.improvements]);
+      setEditImprovements([...selectedAnalysis.engineering_improvements, ...selectedAnalysis.management_improvements]);
       setEditRegulations(selectedAnalysis.regulations || []);
       setIsEditing(true);
     }
@@ -474,12 +535,15 @@ export default function CameraPage() {
     try {
       setIsLoading(true);
       
+      const engImpLength = selectedAnalysis?.engineering_improvements?.length || 0;
+      
       // Firestore에서 문서 업데이트
       const docRef = doc(db, 'analyses', selectedAnalysis.id);
       await updateDoc(docRef, {
         title: editTitle,
         risk_factors: editRiskFactors,
-        improvements: editImprovements,
+        engineering_improvements: editImprovements.slice(0, engImpLength),
+        management_improvements: editImprovements.slice(engImpLength),
         regulations: editRegulations
       });
       
@@ -488,7 +552,8 @@ export default function CameraPage() {
         ...selectedAnalysis,
         title: editTitle,
         risk_factors: editRiskFactors,
-        improvements: editImprovements,
+        engineering_improvements: editImprovements.slice(0, engImpLength),
+        management_improvements: editImprovements.slice(engImpLength),
         regulations: editRegulations
       };
       
@@ -520,65 +585,79 @@ export default function CameraPage() {
 
     return (
       <div className="space-y-6">
-        <div>
-          <h3 className="text-xl font-semibold mb-3 text-gray-800">위험 요인</h3>
-          <div className="bg-white rounded-lg shadow-md p-5">
-            {isEditing ? (
-              <div className="space-y-2">
-                {(editRiskFactors || []).map((risk, index) => (
-                  <div key={index} className="flex items-center">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="material-icons mr-2 text-orange-500">warning</span>
+            위험 요인
+          </h3>
+          <div className="pl-4">
+            {!isEditing ? (
+              <ul className="list-disc list-inside space-y-3">
+                {analysis.risk_factors && analysis.risk_factors.length > 0 ? (
+                  analysis.risk_factors.map((factor, index) => (
+                    <li key={index} className="text-gray-700">{factor}</li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">식별된 위험 요인이 없습니다.</li>
+                )}
+              </ul>
+            ) : (
+              <div>
+                {editRiskFactors.map((factor, index) => (
+                  <div key={index} className="flex items-center mb-2">
                     <input
                       type="text"
-                      value={risk}
+                      value={factor}
                       onChange={(e) => {
-                        const newRiskFactors = [...editRiskFactors];
-                        newRiskFactors[index] = e.target.value;
-                        setEditRiskFactors(newRiskFactors);
+                        const newFactors = [...editRiskFactors];
+                        newFactors[index] = e.target.value;
+                        setEditRiskFactors(newFactors);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-grow p-2 border rounded mr-2"
                     />
                     <button
                       onClick={() => {
-                        const newRiskFactors = [...editRiskFactors];
-                        newRiskFactors.splice(index, 1);
-                        setEditRiskFactors(newRiskFactors);
+                        const newFactors = [...editRiskFactors];
+                        newFactors.splice(index, 1);
+                        setEditRiskFactors(newFactors);
                       }}
-                      className="ml-2 p-2 text-red-500 hover:text-red-700"
+                      className="bg-red-500 text-white p-1 rounded"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="material-icons">delete</span>
                     </button>
                   </div>
                 ))}
                 <button
-                  onClick={() => setEditRiskFactors([...editRiskFactors, ""])}
-                  className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setEditRiskFactors([...editRiskFactors, ''])}
+                  className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center"
                 >
-                  항목 추가
+                  <span className="material-icons mr-1">add</span> 추가
                 </button>
               </div>
-            ) : (
-              <ul className="list-disc list-inside space-y-3">
-                {analysis.risk_factors && analysis.risk_factors.length > 0 ? (
-                  analysis.risk_factors.map((risk, index) => (
-                    <li key={index} className="text-gray-700">{risk}</li>
-                  ))
-                ) : (
-                  <li className="text-gray-500">감지된 위험 요인이 없습니다.</li>
-                )}
-              </ul>
             )}
           </div>
         </div>
 
-        <div>
-          <h3 className="text-xl font-semibold mb-3 text-gray-800">개선 방안</h3>
-          <div className="bg-white rounded-lg shadow-md p-5">
-            {isEditing ? (
-              <div className="space-y-2">
-                {editImprovements.map((improvement, index) => (
-                  <div key={index} className="flex items-center">
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="material-icons mr-2 text-green-500">build</span>
+            공학적 개선방안
+          </h3>
+          <div className="pl-4">
+            {!isEditing ? (
+              <ul className="list-disc list-inside space-y-3">
+                {analysis.engineering_improvements && analysis.engineering_improvements.length > 0 ? (
+                  analysis.engineering_improvements.map((improvement, index) => (
+                    <li key={index} className="text-gray-700">{improvement}</li>
+                  ))
+                ) : (
+                  <li className="text-gray-500">제안된 공학적 개선 방안이 없습니다.</li>
+                )}
+              </ul>
+            ) : (
+              <div>
+                {editImprovements.slice(0, analysis?.engineering_improvements?.length || 0).map((improvement, index) => (
+                  <div key={index} className="flex items-center mb-2">
                     <input
                       type="text"
                       value={improvement}
@@ -587,7 +666,7 @@ export default function CameraPage() {
                         newImprovements[index] = e.target.value;
                         setEditImprovements(newImprovements);
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-grow p-2 border rounded mr-2"
                     />
                     <button
                       onClick={() => {
@@ -595,31 +674,74 @@ export default function CameraPage() {
                         newImprovements.splice(index, 1);
                         setEditImprovements(newImprovements);
                       }}
-                      className="ml-2 p-2 text-red-500 hover:text-red-700"
+                      className="bg-red-500 text-white p-1 rounded"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <span className="material-icons">delete</span>
                     </button>
                   </div>
                 ))}
                 <button
-                  onClick={() => setEditImprovements([...editImprovements, ""])}
-                  className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setEditImprovements([...editImprovements, ''])}
+                  className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center"
                 >
-                  항목 추가
+                  <span className="material-icons mr-1">add</span> 추가
                 </button>
               </div>
-            ) : (
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <span className="material-icons mr-2 text-blue-500">people</span>
+            관리적 개선방안
+          </h3>
+          <div className="pl-4">
+            {!isEditing ? (
               <ul className="list-disc list-inside space-y-3">
-                {analysis.improvements && analysis.improvements.length > 0 ? (
-                  analysis.improvements.map((improvement, index) => (
+                {analysis.management_improvements && analysis.management_improvements.length > 0 ? (
+                  analysis.management_improvements.map((improvement, index) => (
                     <li key={index} className="text-gray-700">{improvement}</li>
                   ))
                 ) : (
-                  <li className="text-gray-500">제안된 개선 방안이 없습니다.</li>
+                  <li className="text-gray-500">제안된 관리적 개선 방안이 없습니다.</li>
                 )}
               </ul>
+            ) : (
+              <div>
+                {editImprovements.slice(analysis?.engineering_improvements?.length || 0).map((improvement, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={improvement}
+                      onChange={(e) => {
+                        const newImprovements = [...editImprovements];
+                        const engImpLength = analysis?.engineering_improvements?.length || 0;
+                        newImprovements[engImpLength + index] = e.target.value;
+                        setEditImprovements(newImprovements);
+                      }}
+                      className="flex-grow p-2 border rounded mr-2"
+                    />
+                    <button
+                      onClick={() => {
+                        const newImprovements = [...editImprovements];
+                        const engImpLength = analysis?.engineering_improvements?.length || 0;
+                        newImprovements.splice(engImpLength + index, 1);
+                        setEditImprovements(newImprovements);
+                      }}
+                      className="bg-red-500 text-white p-1 rounded"
+                    >
+                      <span className="material-icons">delete</span>
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditImprovements([...editImprovements, ''])}
+                  className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center"
+                >
+                  <span className="material-icons mr-1">add</span> 추가
+                </button>
+              </div>
             )}
           </div>
         </div>
