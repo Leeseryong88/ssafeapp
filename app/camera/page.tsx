@@ -313,8 +313,8 @@ export default function CameraPage() {
     try {
       setIsSaving(true);
       
-      // 이미지 압축 (최대 너비 800px, 품질 50%)
-      const compressedImage = await compressImage(capturedImage, 800, 0.5);
+      // 이미지 압축 (최대 너비 600px, 품질 30%)
+      const compressedImage = await compressImage(capturedImage, 600, 0.3);
       
       // 1. Firebase Storage에 이미지 업로드
       const timestamp = Date.now();
@@ -692,7 +692,7 @@ export default function CameraPage() {
     );
   };
   
-  const compressImage = async (imageDataUrl: string, maxWidth = 800, quality = 0.6): Promise<string> => {
+  const compressImage = async (imageDataUrl: string, maxWidth = 600, quality = 0.6): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
       const img: HTMLImageElement = document.createElement('img');
       img.src = imageDataUrl;
