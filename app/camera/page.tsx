@@ -238,8 +238,43 @@ export default function CameraPage() {
           const regulationRows = tables[1].querySelectorAll('tbody tr');
           regulationRows.forEach(row => {
             const cell = row.querySelector('td');
-            const regulation = cell?.textContent?.trim();
-            if (regulation) analysisData.regulations.push(regulation);
+            const fullRegulation = cell?.textContent?.trim();
+            
+            if (fullRegulation) {
+              // 법령 텍스트에서 첫 문장이나 첫 마침표까지만 추출
+              let firstSentence = fullRegulation.split(/[.。]/)[0].trim();
+              
+              // 다양한 법령 형식 처리:
+              // 1. "산업안전보건법 제00조(제목)"
+              // 2. "산업안전보건법 제00조 제목"
+              // 3. "산업안전보건기준에 관한 규칙 제00조(제목)"
+              // 4. "산업안전보건기준에 관한 규칙 제00조 제00항"
+              
+              // 패턴1: 법령명 + 조항번호 + (괄호 안의 제목)
+              const pattern1 = /^(.+?(?:법|규칙|규정|고시|지침))\s+(제\d+조(?:\s*제\d+항)?(?:\([^)]+\))?)/;
+              // 패턴2: 법령명 + 조항번호 + 공백 + 제목(50자 이내)
+              const pattern2 = /^(.+?(?:법|규칙|규정|고시|지침))\s+(제\d+조(?:\s*제\d+항)?)\s+(.{1,50})/;
+              
+              let match = firstSentence.match(pattern1);
+              if (match && match[1] && match[2]) {
+                // 패턴1 매치: 법령명 + 조항번호(+ 괄호안 제목)
+                analysisData.regulations.push(`${match[1]} ${match[2]}`);
+              } else {
+                match = firstSentence.match(pattern2);
+                if (match && match[1] && match[2] && match[3]) {
+                  // 패턴2 매치: 법령명 + 조항번호 + 제목
+                  // 제목에서 설명이 길어지는 경우 50자로 제한
+                  const title = match[3].length > 50 ? match[3].substring(0, 50) + '...' : match[3];
+                  analysisData.regulations.push(`${match[1]} ${match[2]}(${title})`);
+                } else {
+                  // 매치되지 않는 경우 - 그냥 첫 문장만 사용하되 100자로 제한
+                  if (firstSentence.length > 100) {
+                    firstSentence = firstSentence.substring(0, 100) + '...';
+                  }
+                  analysisData.regulations.push(firstSentence);
+                }
+              }
+            }
           });
         }
       }
