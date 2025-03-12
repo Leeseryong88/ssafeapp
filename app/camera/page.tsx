@@ -234,13 +234,35 @@ export default function CameraPage() {
           }
         });
 
-        // 두 번째 테이블에서 관련 규정 추출
+        // 두 번째 테이블에서 관련 규정 추출 - 여기를 수정
         if (tables.length > 1) {
           const regulationRows = tables[1].querySelectorAll('tbody tr');
           regulationRows.forEach(row => {
             const cell = row.querySelector('td');
-            const regulation = cell?.textContent?.trim();
-            if (regulation) analysisData.regulations.push(regulation);
+            const fullText = cell?.textContent?.trim();
+            
+            if (fullText) {
+              // 법령명과 조항 추출 패턴
+              // 예: "산업안전보건법 제38조(안전조치)" 또는 "산업안전보건기준에 관한 규칙 제32조(보호구의 지급 등)"
+              const lawPattern = /^(.+?(?:법|규칙|규정|고시|지침))\s+(제\d+조(?:\s*제\d+항)?(?:\s*제\d+호)?(?:\([^)]+\))?)/;
+              const match = fullText.match(lawPattern);
+              
+              if (match) {
+                // 법령명과 조항번호(제목 포함)만 추출
+                const lawTitle = match[1]; // 법령명
+                const articleTitle = match[2]; // 조항번호와 제목
+                analysisData.regulations.push(`${lawTitle} ${articleTitle}`);
+              } else {
+                // 패턴에 맞지 않는 경우, 첫 문장 또는 일정 길이만 추출
+                const firstSentence = fullText.split(/[.。]/)[0].trim();
+                // 너무 길면 적절히 자름 (80자 이내)
+                const shortenedText = firstSentence.length > 80 
+                  ? firstSentence.substring(0, 80) + '...' 
+                  : firstSentence;
+                
+                analysisData.regulations.push(shortenedText);
+              }
+            }
           });
         }
       }
