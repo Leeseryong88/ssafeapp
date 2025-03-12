@@ -31,7 +31,8 @@ interface SavedAnalysis {
   title: string;
   imageUrl: string;
   risk_factors: string[];
-  improvements: string[];
+  engineering_improvements: string[];
+  management_improvements: string[];
   regulations: string[];
   userId: string;
   storageRef?: string;
@@ -845,7 +846,7 @@ export default function ProfilePage() {
                 <div className="flex justify-center items-center py-20">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                 </div>
-              ) : savedAnalyses.length > 0 ? (
+              ) : savedAnalyses && savedAnalyses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {savedAnalyses.map((analysis) => (
                     <div 
@@ -863,7 +864,7 @@ export default function ProfilePage() {
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <div className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-                            위험요소 {analysis.risk_factors.length}개
+                            위험요소 {analysis.risk_factors?.length || 0}개
                           </div>
                           <span className="text-sm text-gray-500">
                             {new Date(analysis.createdAt).toLocaleDateString()}
@@ -1030,7 +1031,7 @@ export default function ProfilePage() {
                       <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200">
                         <h3 className="text-xl font-bold text-green-700 mb-4">개선 대책</h3>
                         <ul className="space-y-3">
-                          {selectedAnalysis.improvements.map((item, index) => (
+                          {[...(selectedAnalysis.engineering_improvements || []), ...(selectedAnalysis.management_improvements || [])].map((item, index) => (
                             <li key={`improvement-${index}`} className="flex items-start">
                               <span className="inline-flex items-center justify-center w-6 h-6 bg-green-200 text-green-700 rounded-full mr-3 shrink-0 font-bold text-sm">
                                 {index + 1}
@@ -1038,7 +1039,8 @@ export default function ProfilePage() {
                               <span className="text-gray-700">{item}</span>
                             </li>
                           ))}
-                          {selectedAnalysis.improvements.length === 0 && (
+                          {(!selectedAnalysis.engineering_improvements || selectedAnalysis.engineering_improvements.length === 0) &&
+                           (!selectedAnalysis.management_improvements || selectedAnalysis.management_improvements.length === 0) && (
                             <li className="text-gray-500 italic">개선 대책이 없습니다.</li>
                           )}
                         </ul>
