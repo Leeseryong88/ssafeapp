@@ -145,19 +145,44 @@ export default function CameraPage() {
           
         } catch (error) {
           console.error('이미지 압축 중 오류:', error);
-          setAnalysisError('이미지 처리 중 오류가 발생했습니다.');
+          
+          // 상태 초기화
+          setCapturedImage(null);
+          setImageFile(null);
+          setAnalysis(null);
+          
+          // 오류 메시지 설정
+          const errorMessage = error instanceof Error ? error.message : '이미지 처리 중 오류가 발생했습니다.';
+          setAnalysisError(`${errorMessage} 새로운 사진으로 다시 시작해주세요.`);
+          alert(`이미지 처리 중 오류가 발생했습니다. 새로운 사진으로 다시 시작해주세요.`);
         }
       };
       
       reader.onerror = () => {
-        setAnalysisError('이미지 파일을 읽을 수 없습니다.');
+        // 상태 초기화
+        setCapturedImage(null);
+        setImageFile(null);
+        setAnalysis(null);
+        
+        // 오류 메시지 설정
+        setAnalysisError('이미지 파일을 읽을 수 없습니다. 새로운 사진으로 다시 시작해주세요.');
+        alert('이미지 파일을 읽을 수 없습니다. 새로운 사진으로 다시 시작해주세요.');
       };
       
       reader.readAsDataURL(file);
       
     } catch (error) {
       console.error('이미지 처리 중 오류:', error);
-      setAnalysisError('이미지 처리 중 오류가 발생했습니다.');
+      
+      // 상태 초기화
+      setCapturedImage(null);
+      setImageFile(null);
+      setAnalysis(null);
+      
+      // 오류 메시지 설정
+      const errorMessage = error instanceof Error ? error.message : '이미지 처리 중 오류가 발생했습니다.';
+      setAnalysisError(`${errorMessage} 새로운 사진으로 다시 시작해주세요.`);
+      alert(`이미지 처리 중 오류가 발생했습니다. 새로운 사진으로 다시 시작해주세요.`);
     }
   };
 
@@ -274,8 +299,16 @@ export default function CameraPage() {
       setShowSaveDialog(false);
     } catch (error: any) {
       console.error('Error:', error);
-      setAnalysisError(error.message || '이미지 분석 중 오류가 발생했습니다.');
-      alert(error.message || '이미지 분석 중 오류가 발생했습니다.');
+      
+      // 오류 메시지 설정 - 새로운 사진으로 다시 시작 안내 추가
+      const errorMessage = error.message || '이미지 분석 중 오류가 발생했습니다.';
+      setAnalysisError(`${errorMessage} 새로운 사진으로 다시 시작해주세요.`);
+      
+      // 상태 초기화
+      setAnalysis(null);
+      
+      // 사용자에게 오류 알림
+      alert(`${errorMessage} 새로운 사진으로 다시 시작해주세요.`);
     } finally {
       setIsLoading(false);
     }
@@ -298,7 +331,8 @@ export default function CameraPage() {
             
             const ctx = canvas.getContext('2d');
             if (!ctx) {
-              reject(new Error('Canvas 컨텍스트를 생성할 수 없습니다.'));
+              URL.revokeObjectURL(url);
+              reject(new Error('Canvas 컨텍스트를 생성할 수 없습니다. 일반 사진으로 다시 시도해주세요.'));
               return;
             }
             
@@ -307,7 +341,8 @@ export default function CameraPage() {
             // 캔버스에서 JPEG 형식으로 데이터 추출
             canvas.toBlob((blob) => {
               if (!blob) {
-                reject(new Error('이미지 변환에 실패했습니다.'));
+                URL.revokeObjectURL(url);
+                reject(new Error('이미지 변환에 실패했습니다. 다른 형식의 사진을 시도해주세요.'));
                 return;
               }
               
@@ -324,18 +359,24 @@ export default function CameraPage() {
             }, 'image/jpeg', 0.95);
           } catch (error) {
             URL.revokeObjectURL(url);
-            reject(error);
+            const errorMessage = error instanceof Error ? 
+              `이미지 변환 중 오류: ${error.message}` : 
+              '이미지 변환 중 알 수 없는 오류가 발생했습니다.';
+            reject(new Error(`${errorMessage} 다른 사진으로 다시 시도해주세요.`));
           }
         };
         
         img.onerror = () => {
           URL.revokeObjectURL(url);
-          reject(new Error('이미지를 로드할 수 없습니다.'));
+          reject(new Error('이미지를 로드할 수 없습니다. 유효한 이미지 파일인지 확인하고 다시 시도해주세요.'));
         };
         
         img.src = url;
       } catch (error) {
-        reject(error);
+        const errorMessage = error instanceof Error ? 
+          `이미지 처리 중 오류: ${error.message}` : 
+          '이미지 처리 중 알 수 없는 오류가 발생했습니다.';
+        reject(new Error(`${errorMessage} 다른 사진으로 다시 시도해주세요.`));
       }
     });
   };
@@ -1169,48 +1210,63 @@ export default function CameraPage() {
     } = options;
 
     return new Promise<string>((resolve, reject) => {
-      const img: HTMLImageElement = document.createElement('img');
-      img.src = imageDataUrl;
-      
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+      try {
+        const img: HTMLImageElement = document.createElement('img');
         
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('이미지 압축을 위한 Canvas 컨텍스트를 생성할 수 없습니다. 다른 사진으로 다시 시도해주세요.'));
+              return;
+            }
+            
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+            
+            // 압축된 이미지 크기 확인
+            const base64Size = Math.ceil((compressedDataUrl.length * 3) / 4);
+            if (base64Size > maxSize) {
+              // 크기가 여전히 크면 더 작은 품질로 재시도
+              return resolve(compressImage(imageDataUrl, { 
+                maxWidth: maxWidth - 100,
+                quality: quality - 0.1,
+                maxSize 
+              }));
+            }
+            
+            resolve(compressedDataUrl);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? 
+              `이미지 압축 중 오류: ${error.message}` : 
+              '이미지 압축 중 알 수 없는 오류가 발생했습니다.';
+            reject(new Error(`${errorMessage} 다른 사진으로 다시 시도해주세요.`));
+          }
+        };
         
-        canvas.width = width;
-        canvas.height = height;
+        img.onerror = () => {
+          reject(new Error('이미지 압축을 위한 이미지 로드에 실패했습니다. 유효한 이미지 파일인지 확인하고 다시 시도해주세요.'));
+        };
         
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('이미지 압축 실패'));
-          return;
-        }
-        
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        
-        // 압축된 이미지 크기 확인
-        const base64Size = Math.ceil((compressedDataUrl.length * 3) / 4);
-        if (base64Size > maxSize) {
-          // 크기가 여전히 크면 더 작은 품질로 재시도
-          return resolve(compressImage(imageDataUrl, { 
-            maxWidth: maxWidth - 100,
-            quality: quality - 0.1,
-            maxSize 
-          }));
-        }
-        
-        resolve(compressedDataUrl);
-      };
-      
-      img.onerror = () => {
-        reject(new Error('이미지 로드 실패'));
-      };
+        img.src = imageDataUrl;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? 
+          `이미지 압축 과정 중 오류: ${error.message}` : 
+          '이미지 압축 과정 중 알 수 없는 오류가 발생했습니다.';
+        reject(new Error(`${errorMessage} 다른 사진으로 다시 시도해주세요.`));
+      }
     });
   };
 
@@ -1469,7 +1525,17 @@ export default function CameraPage() {
                     <svg className="w-12 h-12 text-red-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-red-600 text-sm">{analysisError}</p>
+                    <p className="text-red-600 text-sm mb-4">{analysisError}</p>
+                    <button
+                      onClick={reanalyzeWithNewImage}
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      새 사진으로 다시 시작
+                    </button>
                   </div>
                 ) : (
                   <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col items-center justify-center min-h-[200px] text-center">
