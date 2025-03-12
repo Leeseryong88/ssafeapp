@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, delete
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage, auth } from '../../firebase';
 import Image from 'next/image';
+import * as XLSX from 'xlsx';
 
 // 위험성평가 인터페이스 정의
 interface SavedAssessment {
@@ -476,6 +477,63 @@ export default function ProfilePage() {
     }
   };
 
+  // Excel로 다운로드 함수 추가
+  const downloadExcel = () => {
+    if (!selectedAssessment) {
+      alert('다운로드할 위험성평가 데이터가 없습니다.');
+      return;
+    }
+    
+    try {
+      // 제목 설정
+      const title = selectedAssessment.title;
+      
+      // 데이터 구조화
+      const data = [
+        [title],
+        [''],
+        ['날짜', new Date(selectedAssessment.createdAt).toLocaleDateString()],
+        [''],
+        ['공정/장비', '위험요인', '심각도', '발생가능성', '위험도', '개선대책']
+      ];
+      
+      // 위험성 평가 데이터 추가
+      selectedAssessment.tableData.forEach((item) => {
+        data.push([
+          item.processName || '',
+          item.riskFactor || '',
+          item.severity || '',
+          item.probability || '',
+          item.riskLevel || '',
+          item.countermeasure || ''
+        ]);
+      });
+      
+      // 워크북 생성
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // 셀 병합
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // 제목 행 병합
+      ];
+      
+      // 워크시트 추가
+      XLSX.utils.book_append_sheet(wb, ws, "위험성평가");
+      
+      // 파일명 생성
+      const fileName = `${selectedAssessment.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // 파일 다운로드
+      XLSX.writeFile(wb, fileName);
+      
+      setMessage({ type: 'success', text: 'Excel 파일이 성공적으로 생성되었습니다.' });
+    } catch (error) {
+      console.error('Excel 파일 생성 오류:', error);
+      setMessage({ type: 'error', text: 'Excel 파일 생성에 실패했습니다.' });
+    }
+  };
+
   // 현장분석 수정 시작
   const startEditingAnalysis = () => {
     if (!selectedAnalysis) return;
@@ -914,7 +972,7 @@ export default function ProfilePage() {
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <div className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-                            위험요소 {analysis.risk_factors?.length || 0}개
+                            위험요인 {analysis.risk_factors?.length || 0}개
                           </div>
                           <span className="text-sm text-gray-500">
                             {new Date(analysis.createdAt).toLocaleDateString()}
@@ -982,13 +1040,25 @@ export default function ProfilePage() {
                     
                     <div className="flex space-x-3">
                       <button 
+                        onClick={downloadExcel}
+                        className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        </svg>
+                        Excel 다운로드
+                      </button>
+                      <button 
                         onClick={() => saveToPdf('assessment')}
                         disabled={isGeneratingPdf}
-                        className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors ${
+                        className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center ${
                           isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       >
-                        {isGeneratingPdf ? '생성 중...' : 'PDF로 저장'}
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        {isGeneratingPdf ? 'PDF 생성 중...' : 'PDF로 저장'}
                       </button>
                       <button 
                         onClick={() => deleteAssessment(selectedAssessment.id)}
@@ -1058,10 +1128,13 @@ export default function ProfilePage() {
                           <button 
                             onClick={() => saveToPdf('analysis')}
                             disabled={isGeneratingPdf}
-                            className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors ${
+                            className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center ${
                               isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
                             {isGeneratingPdf ? 'PDF 생성 중...' : 'PDF로 저장'}
                           </button>
                           <button 
