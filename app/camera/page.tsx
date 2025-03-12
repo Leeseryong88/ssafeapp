@@ -413,7 +413,7 @@ export default function CameraPage() {
               className="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               새로운 사진으로 분석
@@ -713,9 +713,12 @@ export default function CameraPage() {
 
     return (
       <div className="space-y-6">
+        {/* 위험 요인 */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="material-icons mr-2 text-orange-500">warning</span>
+            <svg className="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             위험 요인
           </h3>
           <div className="pl-4">
@@ -749,26 +752,35 @@ export default function CameraPage() {
                         newFactors.splice(index, 1);
                         setEditRiskFactors(newFactors);
                       }}
-                      className="bg-red-500 text-white p-1 rounded"
+                      className="text-red-500 p-1 rounded hover:bg-red-50"
                     >
-                      <span className="material-icons">delete</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 ))}
                 <button
                   onClick={() => setEditRiskFactors([...editRiskFactors, ''])}
-                  className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center"
+                  className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
                 >
-                  <span className="material-icons mr-1">add</span> 추가
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  항목 추가
                 </button>
               </div>
             )}
           </div>
         </div>
 
+        {/* 공학적 개선방안 */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="material-icons mr-2 text-green-500">build</span>
+            <svg className="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
             공학적 개선방안
           </h3>
           <div className="pl-4">
@@ -802,26 +814,34 @@ export default function CameraPage() {
                         newImprovements.splice(index, 1);
                         setEditImprovements(newImprovements);
                       }}
-                      className="bg-red-500 text-white p-1 rounded"
+                      className="text-red-500 p-1 rounded hover:bg-red-50"
                     >
-                      <span className="material-icons">delete</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 ))}
                 <button
                   onClick={() => setEditImprovements([...editImprovements, ''])}
-                  className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center"
+                  className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
                 >
-                  <span className="material-icons mr-1">add</span> 추가
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  항목 추가
                 </button>
               </div>
             )}
           </div>
         </div>
 
+        {/* 관리적 개선방안 */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <span className="material-icons mr-2 text-blue-500">people</span>
+            <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
             관리적 개선방안
           </h3>
           <div className="pl-4">
@@ -857,47 +877,7 @@ export default function CameraPage() {
                         newImprovements.splice(engImpLength + index, 1);
                         setEditImprovements(newImprovements);
                       }}
-                      className="bg-red-500 text-white p-1 rounded"
-                    >
-                      <span className="material-icons">delete</span>
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => setEditImprovements([...editImprovements, ''])}
-                  className="mt-2 bg-blue-500 text-white px-3 py-1 rounded flex items-center"
-                >
-                  <span className="material-icons mr-1">add</span> 추가
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-xl font-semibold mb-3 text-gray-800">관련 규정</h3>
-          <div className="bg-white rounded-lg shadow-md p-5">
-            {isEditing ? (
-              <div className="space-y-2">
-                {editRegulations.map((regulation, index) => (
-                  <div key={index} className="flex items-center">
-                    <input
-                      type="text"
-                      value={regulation}
-                      onChange={(e) => {
-                        const newRegulations = [...editRegulations];
-                        newRegulations[index] = e.target.value;
-                        setEditRegulations(newRegulations);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={(e) => {
-                        const newRegulations = [...editRegulations];
-                        newRegulations.splice(index, 1);
-                        setEditRegulations(newRegulations);
-                      }}
-                      className="ml-2 p-2 text-red-500 hover:text-red-700"
+                      className="text-red-500 p-1 rounded hover:bg-red-50"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -906,13 +886,24 @@ export default function CameraPage() {
                   </div>
                 ))}
                 <button
-                  onClick={() => setEditRegulations([...editRegulations, ""])}
-                  className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setEditImprovements([...editImprovements, ''])}
+                  className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
                 >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
                   항목 추가
                 </button>
               </div>
-            ) : (
+            )}
+          </div>
+        </div>
+
+        {/* 관련 규정 */}
+        <div>
+          <h3 className="text-xl font-semibold mb-3 text-gray-800">관련 규정</h3>
+          <div className="bg-white rounded-lg shadow-md p-5">
+            {!isEditing ? (
               <ul className="space-y-3 pl-4">
                 {analysis.regulations && analysis.regulations.length > 0 ? (
                   analysis.regulations.map((regulation, index) => (
@@ -942,7 +933,185 @@ export default function CameraPage() {
                   </li>
                 )}
               </ul>
+            ) : (
+              <div>
+                {editRegulations.map((regulation, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={regulation}
+                      onChange={(e) => {
+                        const newRegulations = [...editRegulations];
+                        newRegulations[index] = e.target.value;
+                        setEditRegulations(newRegulations);
+                      }}
+                      className="flex-grow p-2 border rounded mr-2"
+                    />
+                    <button
+                      onClick={() => {
+                        const newRegulations = [...editRegulations];
+                        newRegulations.splice(index, 1);
+                        setEditRegulations(newRegulations);
+                      }}
+                      className="text-red-500 p-1 rounded hover:bg-red-50"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditRegulations([...editRegulations, ''])}
+                  className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  항목 추가
+                </button>
+              </div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // PDF로 저장 기능
+  const saveToPdf = async () => {
+    if (!selectedAnalysis) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // 동적으로 html2pdf 라이브러리 로드
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      // PDF 변환 대상 엘리먼트
+      const element = document.getElementById('analysis-detail-content');
+      if (!element) {
+        throw new Error('PDF로 변환할 콘텐츠를 찾을 수 없습니다.');
+      }
+      
+      // html2pdf 옵션 설정
+      const opt = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: `${selectedAnalysis.title}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // PDF 생성 및 다운로드
+      await html2pdf().set(opt).from(element).save();
+      
+      alert('PDF가 성공적으로 생성되었습니다.');
+    } catch (error) {
+      console.error('PDF 생성 중 오류가 발생했습니다:', error);
+      alert('PDF 생성에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderDetailView = () => {
+    if (!selectedAnalysis) return null;
+
+    return (
+      <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center sticky top-0 z-10">
+          <div className="flex items-center">
+            <button 
+              onClick={goBackToSaved}
+              className="mr-4 p-2 hover:bg-white/10 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="bg-white/10 p-1 rounded"
+                placeholder="제목을 입력하세요"
+              />
+            ) : (
+              <h2 className="text-2xl font-bold">{selectedAnalysis.title}</h2>
+            )}
+          </div>
+          
+          <div className="flex space-x-3">
+            {isEditing ? (
+              <>
+                <button 
+                  onClick={cancelEdit}
+                  className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  취소
+                </button>
+                <button 
+                  onClick={saveEdit}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  저장
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={saveToPdf}
+                  disabled={isLoading}
+                  className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center ${
+                    isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {isLoading ? 'PDF 생성 중...' : 'PDF로 저장'}
+                </button>
+                <button 
+                  onClick={startEditing}
+                  className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  수정하기
+                </button>
+                <button 
+                  onClick={() => deleteSavedAnalysis(selectedAnalysis.id)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        <div className="p-8" id="analysis-detail-content">
+          <div className="text-sm text-gray-500 mb-6">
+            저장일: {new Date(selectedAnalysis.createdAt).toLocaleDateString()}
+          </div>
+          
+          {/* 이미지 영역 - 상단 배치 */}
+          <div className="w-full mb-8">
+            <div className="relative aspect-[16/9] w-full max-w-3xl mx-auto rounded-lg overflow-hidden shadow-md">
+              <Image
+                src={selectedAnalysis.imageUrl}
+                alt={selectedAnalysis.title}
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
+          
+          {/* 분석 결과 영역 - 하단 배치 */}
+          <div className="w-full max-w-4xl mx-auto">
+            {renderAnalysisTable(selectedAnalysis)}
           </div>
         </div>
       </div>
@@ -1043,101 +1212,6 @@ export default function CameraPage() {
         reject(new Error('이미지 로드 실패'));
       };
     });
-  };
-
-  const renderDetailView = () => {
-    if (!selectedAnalysis) return null;
-
-    return (
-      <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-        <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <button 
-              onClick={goBackToSaved}
-              className="mr-4 p-2 hover:bg-blue-700 rounded-full transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="bg-blue-700 text-white px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300 text-xl font-semibold"
-                placeholder="제목을 입력하세요"
-              />
-            ) : (
-              <h2 className="text-xl font-semibold">{selectedAnalysis.title}</h2>
-            )}
-          </div>
-          
-          <div className="flex space-x-2">
-            {isEditing ? (
-              <>
-                <button 
-                  onClick={cancelEdit}
-                  className="px-4 py-2 hover:bg-blue-700 rounded-md transition-colors"
-                >
-                  취소
-                </button>
-                <button 
-                  onClick={saveEdit}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition-colors"
-                >
-                  저장
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  onClick={startEditing}
-                  className="p-2 hover:bg-blue-700 rounded-md transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => deleteSavedAnalysis(selectedAnalysis.id)}
-                  className="p-2 hover:bg-blue-700 rounded-md transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        
-        <div className="p-6">
-          <div className="text-sm text-gray-500 mb-4">
-            저장일: {new Date(selectedAnalysis.createdAt).toLocaleDateString()}
-          </div>
-          
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* 이미지 영역 */}
-            <div className="w-full lg:w-1/2">
-              <div className="relative aspect-[4/3] rounded-lg overflow-hidden shadow-md">
-                <Image
-                  src={selectedAnalysis.imageUrl}
-                  alt={selectedAnalysis.title}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </div>
-            
-            {/* 분석 결과 영역 */}
-            <div className="w-full lg:w-1/2">
-              {renderAnalysisTable(selectedAnalysis)}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -1274,7 +1348,7 @@ export default function CameraPage() {
                 </div>
               </div>
 
-              {/* 분석 결과 영역 */}
+              {/* 분석 결과 영역 - 하단 배치 */}
               <div className="w-full">
                 {isLoading ? (
                   <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-8 flex flex-col items-center justify-center min-h-[200px]">
@@ -1383,7 +1457,7 @@ export default function CameraPage() {
                           disabled={!analysis || isSaving}
                         >
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 015.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           {isSaving ? '저장 중...' : '저장하기'}
                         </button>
