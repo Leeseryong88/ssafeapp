@@ -57,6 +57,7 @@ export default function CameraPage() {
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
   const [isLawLoading, setIsLawLoading] = useState<{[key: string]: boolean}>({});
+  const [showReanalyzeDialog, setShowReanalyzeDialog] = useState(false);
 
   // 사용자 인증 상태 확인
   useEffect(() => {
@@ -339,8 +340,15 @@ export default function CameraPage() {
     });
   };
 
-  // 다시 분석하기 함수
-  const handleReanalyze = async () => {
+  // 다시 분석하기 버튼 클릭 핸들러 - 다이얼로그 표시
+  const handleReanalyzeClick = () => {
+    setShowReanalyzeDialog(true);
+  };
+  
+  // 현재 사진으로 다시 분석하기
+  const reanalyzeCurrentImage = async () => {
+    setShowReanalyzeDialog(false);
+    
     if (!imageFile && !capturedImage) {
       alert('분석할 이미지가 없습니다. 먼저 사진을 촬영해주세요.');
       return;
@@ -361,6 +369,66 @@ export default function CameraPage() {
         setAnalysisError("이미지를 다시 분석할 수 없습니다. 새 이미지를 촬영해주세요.");
       }
     }
+  };
+  
+  // 새 사진으로 분석하기 - 상태 초기화 후 카메라 열기
+  const reanalyzeWithNewImage = () => {
+    setShowReanalyzeDialog(false);
+    
+    // 상태 초기화
+    setCapturedImage(null);
+    setImageFile(null);
+    setAnalysis(null);
+    setAnalysisError(null);
+    
+    // 파일 선택 다이얼로그 열기
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    }, 100);
+  };
+  
+  // 다시 분석하기 다이얼로그 컴포넌트
+  const renderReanalyzeDialog = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+          <h3 className="text-xl font-bold mb-4 text-gray-800">분석 방법 선택</h3>
+          <p className="text-gray-600 mb-6">현재 사진으로 다시 분석하시겠습니까, 아니면 새로운 사진을 선택하시겠습니까?</p>
+          
+          <div className="grid grid-cols-1 gap-4">
+            <button
+              onClick={reanalyzeCurrentImage}
+              className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              현재 사진으로 다시 분석
+            </button>
+            
+            <button
+              onClick={reanalyzeWithNewImage}
+              className="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              새로운 사진으로 분석
+            </button>
+            
+            <button
+              onClick={() => setShowReanalyzeDialog(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const openCamera = () => {
@@ -1299,7 +1367,7 @@ export default function CameraPage() {
                       
                       <div className="mt-6 flex justify-center space-x-4">
                         <button
-                          onClick={handleReanalyze}
+                          onClick={handleReanalyzeClick}
                           className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:from-green-700 hover:to-green-800 transition-colors flex items-center justify-center shadow-md"
                           disabled={isLoading}
                         >
@@ -1347,6 +1415,7 @@ export default function CameraPage() {
       
       {/* 저장 다이얼로그 */}
       {showSaveDialog && renderSaveDialog()}
+      {showReanalyzeDialog && renderReanalyzeDialog()}
     </div>
   );
 } 

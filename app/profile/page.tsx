@@ -67,6 +67,22 @@ export default function ProfilePage() {
   const [showAnalysisDetail, setShowAnalysisDetail] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
+  // 현장분석 수정 상태 관리
+  const [editingAnalysis, setEditingAnalysis] = useState(false);
+  const [editAnalysisData, setEditAnalysisData] = useState<{
+    title: string;
+    risk_factors: string[];
+    engineering_improvements: string[];
+    management_improvements: string[];
+    regulations: string[];
+  }>({
+    title: '',
+    risk_factors: [],
+    engineering_improvements: [],
+    management_improvements: [],
+    regulations: []
+  });
+
   useEffect(() => {
     const checkAuth = async () => {
       // Firebase 사용자 인증 상태 확인
@@ -419,9 +435,10 @@ export default function ProfilePage() {
     }
   };
   
-  // PDF로 저장 기능
-  const saveToPdf = async () => {
-    if (!selectedAssessment) return;
+  // PDF 저장 함수를 확장하여 분석 결과에서도 사용할 수 있게 수정
+  const saveToPdf = async (contentType: 'assessment' | 'analysis') => {
+    if (contentType === 'assessment' && !selectedAssessment) return;
+    if (contentType === 'analysis' && !selectedAnalysis) return;
     
     try {
       setIsGeneratingPdf(true);
@@ -430,7 +447,8 @@ export default function ProfilePage() {
       const html2pdf = (await import('html2pdf.js')).default;
       
       // PDF 변환 대상 엘리먼트
-      const element = document.getElementById('assessment-detail-content');
+      const elementId = contentType === 'assessment' ? 'assessment-detail-content' : 'analysis-detail-content';
+      const element = document.getElementById(elementId);
       if (!element) {
         throw new Error('PDF로 변환할 콘텐츠를 찾을 수 없습니다.');
       }
@@ -438,7 +456,9 @@ export default function ProfilePage() {
       // html2pdf 옵션 설정
       const opt = {
         margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `${selectedAssessment.title}.pdf`,
+        filename: contentType === 'assessment' 
+          ? `${selectedAssessment?.title}.pdf` 
+          : `${selectedAnalysis?.title}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -456,61 +476,91 @@ export default function ProfilePage() {
     }
   };
 
-  // Excel로 저장 기능
-  const downloadExcel = async () => {
-    if (!selectedAssessment) return;
+  // 현장분석 수정 시작
+  const startEditingAnalysis = () => {
+    if (!selectedAnalysis) return;
+    
+    setEditAnalysisData({
+      title: selectedAnalysis.title,
+      risk_factors: [...selectedAnalysis.risk_factors],
+      engineering_improvements: [...(selectedAnalysis.engineering_improvements || [])],
+      management_improvements: [...(selectedAnalysis.management_improvements || [])],
+      regulations: [...(selectedAnalysis.regulations || [])]
+    });
+    
+    setEditingAnalysis(true);
+  };
+
+  // 현장분석 수정 취소
+  const cancelEditingAnalysis = () => {
+    setEditingAnalysis(false);
+  };
+
+  // 현장분석 수정 저장
+  const saveAnalysisEdit = async () => {
+    if (!selectedAnalysis || !user) return;
     
     try {
-      // 동적으로 xlsx 라이브러리 로드
-      const XLSX = (await import('xlsx')).default;
+      setRepositoryLoading(true);
       
-      // 제목 설정
-      const title = selectedAssessment.title;
+      // Firestore 문서 업데이트
+      const analysisRef = doc(db, 'analyses', selectedAnalysis.id);
+      await setDoc(analysisRef, {
+        ...selectedAnalysis,
+        title: editAnalysisData.title,
+        risk_factors: editAnalysisData.risk_factors,
+        engineering_improvements: editAnalysisData.engineering_improvements,
+        management_improvements: editAnalysisData.management_improvements,
+        regulations: editAnalysisData.regulations,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
       
-      // 데이터 구조화
-      const data = [
-        [title],
-        [''],
-        ['날짜', new Date(selectedAssessment.createdAt).toLocaleDateString()],
-        [''],
-        ['공정/장비', '위험 요소', '심각도', '발생가능성', '위험도', '개선대책']
-      ];
-      
-      // 위험성 평가 데이터 추가
-      selectedAssessment.tableData.forEach((item) => {
-        data.push([
-          item.processName || '',
-          item.riskFactor || '',
-          item.severity || '',
-          item.probability || '',
-          item.riskLevel || '',
-          item.countermeasure || ''
-        ]);
+      // 선택된 분석 객체 업데이트
+      setSelectedAnalysis({
+        ...selectedAnalysis,
+        title: editAnalysisData.title,
+        risk_factors: editAnalysisData.risk_factors,
+        engineering_improvements: editAnalysisData.engineering_improvements,
+        management_improvements: editAnalysisData.management_improvements,
+        regulations: editAnalysisData.regulations
       });
       
-      // 워크북 생성
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(data);
+      // 저장된 분석 목록 업데이트
+      const updatedAnalyses = savedAnalyses.map(analysis => {
+        if (analysis.id === selectedAnalysis.id) {
+          return {
+            ...analysis,
+            title: editAnalysisData.title,
+            risk_factors: editAnalysisData.risk_factors,
+            engineering_improvements: editAnalysisData.engineering_improvements,
+            management_improvements: editAnalysisData.management_improvements,
+            regulations: editAnalysisData.regulations
+          };
+        }
+        return analysis;
+      });
       
-      // 셀 병합
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // 제목 행 병합
-      ];
-      
-      // 워크시트 추가
-      XLSX.utils.book_append_sheet(wb, ws, "위험성평가");
-      
-      // 파일명 생성
-      const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      
-      // 파일 다운로드
-      XLSX.writeFile(wb, fileName);
-      
-      setMessage({ type: 'success', text: 'Excel 파일이 성공적으로 생성되었습니다.' });
+      setSavedAnalyses(updatedAnalyses);
+      setEditingAnalysis(false);
+      setMessage({ type: 'success', text: '분석 결과가 성공적으로 업데이트되었습니다.' });
     } catch (error) {
-      console.error('Excel 파일 생성 오류:', error);
-      setMessage({ type: 'error', text: 'Excel 파일 생성에 실패했습니다.' });
+      console.error('분석 결과 업데이트 오류:', error);
+      setMessage({ type: 'error', text: '분석 결과 업데이트에 실패했습니다.' });
+    } finally {
+      setRepositoryLoading(false);
     }
+  };
+
+  // 항목 제거 함수 (배열에서 특정 인덱스 제거)
+  const removeItem = (array: string[], index: number) => {
+    return [...array.slice(0, index), ...array.slice(index + 1)];
+  };
+
+  // 항목 업데이트 함수 (배열의 특정 인덱스 값 변경)
+  const updateItem = (array: string[], index: number, value: string) => {
+    const newArray = [...array];
+    newArray[index] = value;
+    return newArray;
   };
 
   if (loading) {
@@ -932,19 +982,13 @@ export default function ProfilePage() {
                     
                     <div className="flex space-x-3">
                       <button 
-                        onClick={saveToPdf}
+                        onClick={() => saveToPdf('assessment')}
                         disabled={isGeneratingPdf}
                         className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors ${
                           isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       >
                         {isGeneratingPdf ? '생성 중...' : 'PDF로 저장'}
-                      </button>
-                      <button 
-                        onClick={downloadExcel}
-                        className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
-                      >
-                        Excel로 저장
                       </button>
                       <button 
                         onClick={() => deleteAssessment(selectedAssessment.id)}
@@ -979,26 +1023,74 @@ export default function ProfilePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                      <h2 className="text-2xl font-bold">{selectedAnalysis.title}</h2>
+                      <h2 className="text-2xl font-bold">
+                        {editingAnalysis ? (
+                          <input 
+                            type="text" 
+                            value={editAnalysisData.title} 
+                            onChange={(e) => setEditAnalysisData({...editAnalysisData, title: e.target.value})}
+                            className="bg-white/10 p-1 rounded"
+                          />
+                        ) : (
+                          selectedAnalysis.title
+                        )}
+                      </h2>
                     </div>
                     
-                    <button 
-                      onClick={() => deleteAnalysis(selectedAnalysis.id)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="flex space-x-3">
+                      {editingAnalysis ? (
+                        <>
+                          <button 
+                            onClick={cancelEditingAnalysis}
+                            className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                          >
+                            취소
+                          </button>
+                          <button 
+                            onClick={saveAnalysisEdit}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            저장
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => saveToPdf('analysis')}
+                            disabled={isGeneratingPdf}
+                            className={`px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors ${
+                              isGeneratingPdf ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            {isGeneratingPdf ? 'PDF 생성 중...' : 'PDF로 저장'}
+                          </button>
+                          <button 
+                            onClick={startEditingAnalysis}
+                            className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
+                          >
+                            수정하기
+                          </button>
+                          <button 
+                            onClick={() => deleteAnalysis(selectedAnalysis.id)}
+                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                          >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="p-8">
+                  <div className="p-8" id="analysis-detail-content">
                     <div className="text-sm text-gray-500 mb-6">
                       저장일: {new Date(selectedAnalysis.createdAt).toLocaleDateString()}
                     </div>
                     
-                    <div className="mb-8">
-                      <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden shadow-lg">
+                    {/* 이미지 영역 - 상단 배치 */}
+                    <div className="w-full mb-8">
+                      <div className="relative aspect-[16/9] w-full max-w-3xl mx-auto rounded-lg overflow-hidden shadow-md">
                         <Image
                           src={selectedAnalysis.imageUrl}
                           alt={selectedAnalysis.title}
@@ -1008,60 +1100,263 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* 위험 요소 */}
-                      <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl border border-red-200">
-                        <h3 className="text-xl font-bold text-red-700 mb-4">위험 요소</h3>
-                        <ul className="space-y-3">
-                          {selectedAnalysis.risk_factors.map((item, index) => (
-                            <li key={`risk-${index}`} className="flex items-start">
-                              <span className="inline-flex items-center justify-center w-6 h-6 bg-red-200 text-red-700 rounded-full mr-3 shrink-0 font-bold text-sm">
-                                {index + 1}
-                              </span>
-                              <span className="text-gray-700">{item}</span>
-                            </li>
-                          ))}
-                          {selectedAnalysis.risk_factors.length === 0 && (
-                            <li className="text-gray-500 italic">위험 요소가 없습니다.</li>
+                    {/* 분석 결과 영역 - 하단 배치 */}
+                    <div className="w-full max-w-4xl mx-auto space-y-6">
+                      {/* 위험 요인 */}
+                      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h3 className="text-xl font-semibold mb-4 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          위험 요인
+                        </h3>
+                        <div className="pl-4">
+                          {editingAnalysis ? (
+                            <div className="space-y-3">
+                              {editAnalysisData.risk_factors.map((factor, index) => (
+                                <div key={index} className="flex items-center">
+                                  <input
+                                    type="text"
+                                    value={factor}
+                                    onChange={(e) => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      risk_factors: updateItem(editAnalysisData.risk_factors, index, e.target.value)
+                                    })}
+                                    className="flex-1 p-2 border border-gray-300 rounded"
+                                  />
+                                  <button
+                                    onClick={() => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      risk_factors: removeItem(editAnalysisData.risk_factors, index)
+                                    })}
+                                    className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded-full"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => setEditAnalysisData({
+                                  ...editAnalysisData,
+                                  risk_factors: [...editAnalysisData.risk_factors, '']
+                                })}
+                                className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                항목 추가
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="list-disc list-inside space-y-3">
+                              {selectedAnalysis.risk_factors && selectedAnalysis.risk_factors.length > 0 ? (
+                                selectedAnalysis.risk_factors.map((factor, index) => (
+                                  <li key={index} className="text-gray-700">{factor}</li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500">식별된 위험 요인이 없습니다.</li>
+                              )}
+                            </ul>
                           )}
-                        </ul>
+                        </div>
                       </div>
-                      
-                      {/* 개선 대책 */}
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200">
-                        <h3 className="text-xl font-bold text-green-700 mb-4">개선 대책</h3>
-                        <ul className="space-y-3">
-                          {[...(selectedAnalysis.engineering_improvements || []), ...(selectedAnalysis.management_improvements || [])].map((item, index) => (
-                            <li key={`improvement-${index}`} className="flex items-start">
-                              <span className="inline-flex items-center justify-center w-6 h-6 bg-green-200 text-green-700 rounded-full mr-3 shrink-0 font-bold text-sm">
-                                {index + 1}
-                              </span>
-                              <span className="text-gray-700">{item}</span>
-                            </li>
-                          ))}
-                          {(!selectedAnalysis.engineering_improvements || selectedAnalysis.engineering_improvements.length === 0) &&
-                           (!selectedAnalysis.management_improvements || selectedAnalysis.management_improvements.length === 0) && (
-                            <li className="text-gray-500 italic">개선 대책이 없습니다.</li>
+
+                      {/* 공학적 개선방안 */}
+                      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h3 className="text-xl font-semibold mb-4 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          공학적 개선방안
+                        </h3>
+                        <div className="pl-4">
+                          {editingAnalysis ? (
+                            <div className="space-y-3">
+                              {editAnalysisData.engineering_improvements.map((improvement, index) => (
+                                <div key={index} className="flex items-center">
+                                  <input
+                                    type="text"
+                                    value={improvement}
+                                    onChange={(e) => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      engineering_improvements: updateItem(editAnalysisData.engineering_improvements, index, e.target.value)
+                                    })}
+                                    className="flex-1 p-2 border border-gray-300 rounded"
+                                  />
+                                  <button
+                                    onClick={() => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      engineering_improvements: removeItem(editAnalysisData.engineering_improvements, index)
+                                    })}
+                                    className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded-full"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => setEditAnalysisData({
+                                  ...editAnalysisData,
+                                  engineering_improvements: [...editAnalysisData.engineering_improvements, '']
+                                })}
+                                className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                항목 추가
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="list-disc list-inside space-y-3">
+                              {selectedAnalysis.engineering_improvements && selectedAnalysis.engineering_improvements.length > 0 ? (
+                                selectedAnalysis.engineering_improvements.map((improvement, index) => (
+                                  <li key={index} className="text-gray-700">{improvement}</li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500">제안된 공학적 개선 방안이 없습니다.</li>
+                              )}
+                            </ul>
                           )}
-                        </ul>
+                        </div>
                       </div>
-                      
-                      {/* 관련 법규 */}
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
-                        <h3 className="text-xl font-bold text-blue-700 mb-4">관련 법규</h3>
-                        <ul className="space-y-3">
-                          {(selectedAnalysis.regulations || []).map((item, index) => (
-                            <li key={`regulation-${index}`} className="flex items-start">
-                              <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-200 text-blue-700 rounded-full mr-3 shrink-0 font-bold text-sm">
-                                {index + 1}
-                              </span>
-                              <span className="text-gray-700">{item}</span>
-                            </li>
-                          ))}
-                          {(!selectedAnalysis.regulations || selectedAnalysis.regulations.length === 0) && (
-                            <li className="text-gray-500 italic">관련 법규가 없습니다.</li>
+
+                      {/* 관리적 개선방안 */}
+                      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                        <h3 className="text-xl font-semibold mb-4 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          관리적 개선방안
+                        </h3>
+                        <div className="pl-4">
+                          {editingAnalysis ? (
+                            <div className="space-y-3">
+                              {editAnalysisData.management_improvements.map((improvement, index) => (
+                                <div key={index} className="flex items-center">
+                                  <input
+                                    type="text"
+                                    value={improvement}
+                                    onChange={(e) => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      management_improvements: updateItem(editAnalysisData.management_improvements, index, e.target.value)
+                                    })}
+                                    className="flex-1 p-2 border border-gray-300 rounded"
+                                  />
+                                  <button
+                                    onClick={() => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      management_improvements: removeItem(editAnalysisData.management_improvements, index)
+                                    })}
+                                    className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded-full"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => setEditAnalysisData({
+                                  ...editAnalysisData,
+                                  management_improvements: [...editAnalysisData.management_improvements, '']
+                                })}
+                                className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                항목 추가
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="list-disc list-inside space-y-3">
+                              {selectedAnalysis.management_improvements && selectedAnalysis.management_improvements.length > 0 ? (
+                                selectedAnalysis.management_improvements.map((improvement, index) => (
+                                  <li key={index} className="text-gray-700">{improvement}</li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500">제안된 관리적 개선 방안이 없습니다.</li>
+                              )}
+                            </ul>
                           )}
-                        </ul>
+                        </div>
+                      </div>
+
+                      {/* 관련 규정 */}
+                      <div>
+                        <h3 className="text-xl font-semibold mb-3 text-gray-800">관련 규정</h3>
+                        <div className="bg-white rounded-lg shadow-md p-5">
+                          {editingAnalysis ? (
+                            <div className="space-y-3">
+                              {editAnalysisData.regulations.map((regulation, index) => (
+                                <div key={index} className="flex items-center">
+                                  <input
+                                    type="text"
+                                    value={regulation}
+                                    onChange={(e) => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      regulations: updateItem(editAnalysisData.regulations, index, e.target.value)
+                                    })}
+                                    className="flex-1 p-2 border border-gray-300 rounded"
+                                  />
+                                  <button
+                                    onClick={() => setEditAnalysisData({
+                                      ...editAnalysisData,
+                                      regulations: removeItem(editAnalysisData.regulations, index)
+                                    })}
+                                    className="ml-2 p-1 text-red-500 hover:bg-red-50 rounded-full"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => setEditAnalysisData({
+                                  ...editAnalysisData,
+                                  regulations: [...editAnalysisData.regulations, '']
+                                })}
+                                className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                항목 추가
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="space-y-3 pl-4">
+                              {selectedAnalysis.regulations && selectedAnalysis.regulations.length > 0 ? (
+                                selectedAnalysis.regulations.map((regulation, index) => (
+                                  <li key={index} className="text-gray-700 relative pl-2">
+                                    <a 
+                                      href={`https://www.law.go.kr/lsSc.do?section=&menuId=1&subMenuId=15&tabMenuId=81&eventGubun=060101&query=${encodeURIComponent(regulation.split(' ')[0])}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                      <span>{regulation}</span>
+                                    </a>
+                                    <div className="absolute left-[-20px] top-0 opacity-50 pointer-events-none">•</div>
+                                  </li>
+                                ))
+                              ) : (
+                                <li className="text-gray-500 relative pl-2">
+                                  <span>관련 규정이 없습니다.</span>
+                                  <div className="absolute left-[-20px] top-0 opacity-50 pointer-events-none">•</div>
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
