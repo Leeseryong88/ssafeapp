@@ -56,6 +56,7 @@ export default function CameraPage() {
   const [user, setUser] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
+  const [isLawLoading, setIsLawLoading] = useState<{[key: string]: boolean}>({});
 
   // 사용자 인증 상태 확인
   useEffect(() => {
@@ -238,43 +239,8 @@ export default function CameraPage() {
           const regulationRows = tables[1].querySelectorAll('tbody tr');
           regulationRows.forEach(row => {
             const cell = row.querySelector('td');
-            const fullRegulation = cell?.textContent?.trim();
-            
-            if (fullRegulation) {
-              // 법령 텍스트에서 첫 문장이나 첫 마침표까지만 추출
-              let firstSentence = fullRegulation.split(/[.。]/)[0].trim();
-              
-              // 다양한 법령 형식 처리:
-              // 1. "산업안전보건법 제00조(제목)"
-              // 2. "산업안전보건법 제00조 제목"
-              // 3. "산업안전보건기준에 관한 규칙 제00조(제목)"
-              // 4. "산업안전보건기준에 관한 규칙 제00조 제00항"
-              
-              // 패턴1: 법령명 + 조항번호 + (괄호 안의 제목)
-              const pattern1 = /^(.+?(?:법|규칙|규정|고시|지침))\s+(제\d+조(?:\s*제\d+항)?(?:\([^)]+\))?)/;
-              // 패턴2: 법령명 + 조항번호 + 공백 + 제목(50자 이내)
-              const pattern2 = /^(.+?(?:법|규칙|규정|고시|지침))\s+(제\d+조(?:\s*제\d+항)?)\s+(.{1,50})/;
-              
-              let match = firstSentence.match(pattern1);
-              if (match && match[1] && match[2]) {
-                // 패턴1 매치: 법령명 + 조항번호(+ 괄호안 제목)
-                analysisData.regulations.push(`${match[1]} ${match[2]}`);
-              } else {
-                match = firstSentence.match(pattern2);
-                if (match && match[1] && match[2] && match[3]) {
-                  // 패턴2 매치: 법령명 + 조항번호 + 제목
-                  // 제목에서 설명이 길어지는 경우 50자로 제한
-                  const title = match[3].length > 50 ? match[3].substring(0, 50) + '...' : match[3];
-                  analysisData.regulations.push(`${match[1]} ${match[2]}(${title})`);
-                } else {
-                  // 매치되지 않는 경우 - 그냥 첫 문장만 사용하되 100자로 제한
-                  if (firstSentence.length > 100) {
-                    firstSentence = firstSentence.substring(0, 100) + '...';
-                  }
-                  analysisData.regulations.push(firstSentence);
-                }
-              }
-            }
+            const regulation = cell?.textContent?.trim();
+            if (regulation) analysisData.regulations.push(regulation);
           });
         }
       }
@@ -614,6 +580,43 @@ export default function CameraPage() {
     setIsEditing(false);
   };
 
+  // 법령 검색 함수
+  const openLawInfo = async (regulation: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 중복 클릭 방지
+    if (isLawLoading[regulation]) return;
+    
+    try {
+      // 로딩 상태 설정
+      setIsLawLoading(prev => ({...prev, [regulation]: true}));
+      
+      // API 호출
+      const response = await fetch(`/api/law?text=${encodeURIComponent(regulation)}`);
+      if (!response.ok) {
+        throw new Error('API 호출 실패');
+      }
+      
+      const data = await response.json();
+      
+      // URL 이동
+      if (data && data.url) {
+        window.open(data.url, '_blank');
+      } else {
+        // 기본 URL로 이동
+        window.open('https://www.law.go.kr', '_blank');
+      }
+    } catch (error) {
+      console.error('법령정보 조회 중 오류:', error);
+      alert('법령정보를 조회할 수 없습니다. 국가법령정보센터로 이동합니다.');
+      window.open('https://www.law.go.kr', '_blank');
+    } finally {
+      // 로딩 상태 해제
+      setIsLawLoading(prev => ({...prev, [regulation]: false}));
+    }
+  };
+
   // 분석 결과를 HTML 테이블로 변환하는 함수
   const renderAnalysisTable = (analysis: Analysis) => {
     if (!analysis) return null;
@@ -799,7 +802,7 @@ export default function CameraPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
                         const newRegulations = [...editRegulations];
                         newRegulations.splice(index, 1);
                         setEditRegulations(newRegulations);
@@ -820,13 +823,33 @@ export default function CameraPage() {
                 </button>
               </div>
             ) : (
-              <ul className="list-disc list-inside space-y-3">
+              <ul className="space-y-3 pl-4">
                 {analysis.regulations && analysis.regulations.length > 0 ? (
                   analysis.regulations.map((regulation, index) => (
-                    <li key={index} className="text-gray-700">{regulation}</li>
+                    <li key={index} className="text-gray-700 relative pl-2">
+                      <a 
+                        href="#" 
+                        onClick={(e) => openLawInfo(regulation, e)}
+                        className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        <span>{regulation}</span>
+                        {isLawLoading[regulation] && (
+                          <span className="ml-2 inline-block">
+                            <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </span>
+                        )}
+                      </a>
+                      <div className="absolute left-[-20px] top-0 opacity-50 pointer-events-none">•</div>
+                    </li>
                   ))
                 ) : (
-                  <li className="text-gray-500">관련 규정이 없습니다.</li>
+                  <li className="text-gray-500 relative pl-2">
+                    <span>관련 규정이 없습니다.</span>
+                    <div className="absolute left-[-20px] top-0 opacity-50 pointer-events-none">•</div>
+                  </li>
                 )}
               </ul>
             )}
@@ -1228,13 +1251,25 @@ export default function CameraPage() {
                       <div className="bg-white p-4 rounded-lg shadow-md">
                         <h3 className="text-base font-semibold mb-3">관련 규정</h3>
                         <div className="pl-3">
-                          <ul className="list-disc list-inside space-y-2">
+                          <ul className="space-y-2 pl-4">
                             {analysis.regulations && analysis.regulations.length > 0 ? (
                               analysis.regulations.map((regulation, index) => (
-                                <li key={index} className="text-gray-700">{regulation}</li>
+                                <li key={index} className="text-gray-700 relative pl-2">
+                                  <a 
+                                    href="#" 
+                                    onClick={(e) => openLawInfo(regulation, e)}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer inline-block"
+                                  >
+                                    {regulation}
+                                  </a>
+                                  <div className="absolute left-[-20px] top-0 opacity-50 pointer-events-none">•</div>
+                                </li>
                               ))
                             ) : (
-                              <li className="text-gray-500">관련 규정이 없습니다.</li>
+                              <li className="text-gray-500 relative pl-2">
+                                <span>관련 규정이 없습니다.</span>
+                                <div className="absolute left-[-20px] top-0 opacity-50 pointer-events-none">•</div>
+                              </li>
                             )}
                           </ul>
                         </div>
