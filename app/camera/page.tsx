@@ -724,25 +724,56 @@ export default function CameraPage() {
       // 로딩 상태 설정
       setIsLawLoading(prev => ({...prev, [regulation]: true}));
       
-      // API 호출
-      const response = await fetch(`/api/law?text=${encodeURIComponent(regulation)}`);
-      if (!response.ok) {
-        throw new Error('API 호출 실패');
-      }
+      // 법령명과 조항번호를 추출하는 정규식 패턴
+      const lawPattern = /^(.+?(?:법|규칙|규정|고시|지침))\s+제(\d+)조(?:제(\d+)항)?(?:제(\d+)호)?(?:\([^)]+\))?/;
+      const match = regulation.match(lawPattern);
       
-      const data = await response.json();
-      
-      // URL 이동
-      if (data && data.url) {
-        window.open(data.url, '_blank');
+      if (match) {
+        // 법령명과 조문번호가 있는 경우 직접 URL 구성
+        const lawName = match[1];
+        const articleNumber = match[2];
+        let url = `https://law.go.kr/법령/${encodeURIComponent(lawName)}`;
+        
+        if (articleNumber) {
+          const fullArticle = `제${articleNumber}조`;
+          url += `/${encodeURIComponent(fullArticle)}`;
+          
+          // 항 정보 추가
+          if (match[3]) {
+            url += `#${match[3]}`;
+          }
+        }
+        
+        console.log('법령 URL:', url);
+        window.open(url, '_blank');
       } else {
-        // 기본 URL로 이동
-        window.open('https://www.law.go.kr', '_blank');
+        // 법령명만 있거나 패턴이 맞지 않는 경우 API 호출
+        const response = await fetch(`/api/law?text=${encodeURIComponent(regulation)}`);
+        if (!response.ok) {
+          throw new Error('API 호출 실패');
+        }
+        
+        const data = await response.json();
+        
+        // URL이 있는 경우
+        if (data && data.url) {
+          window.open(data.url, '_blank');
+        } else {
+          // 기본 URL로 이동 - 간단한 검색 형식 사용
+          const lawNameMatch = regulation.match(/^(.+?(?:법|규칙|규정|고시|지침))/);
+          const lawName = lawNameMatch ? lawNameMatch[1] : regulation.split(' ')[0];
+          const simpleSearchUrl = `https://law.go.kr/법령/${encodeURIComponent(lawName)}`;
+          window.open(simpleSearchUrl, '_blank');
+        }
       }
     } catch (error) {
       console.error('법령정보 조회 중 오류:', error);
       alert('법령정보를 조회할 수 없습니다. 국가법령정보센터로 이동합니다.');
-      window.open('https://www.law.go.kr', '_blank');
+      
+      // 간단한 법령 검색 URL로 이동
+      const lawNameMatch = regulation.match(/^(.+?(?:법|규칙|규정|고시|지침))/);
+      const lawName = lawNameMatch ? lawNameMatch[1] : (regulation.split(' ')[0] || '산업안전보건법');
+      window.open(`https://law.go.kr/법령/${encodeURIComponent(lawName)}`, '_blank');
     } finally {
       // 로딩 상태 해제
       setIsLawLoading(prev => ({...prev, [regulation]: false}));

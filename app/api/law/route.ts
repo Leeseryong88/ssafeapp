@@ -5,6 +5,7 @@ const OC = process.env.LAW_API_OC || 'test'; // 실제 발급받은 OC로 변경
 
 export async function GET(request: NextRequest) {
   const searchText = request.nextUrl.searchParams.get('text');
+  const isExact = request.nextUrl.searchParams.get('exact') === 'true';
   
   if (!searchText) {
     return NextResponse.json({ error: '검색할 법령 정보가 필요합니다.' }, { status: 400 });
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     const lawName = lawNameMatch ? lawNameMatch[1].trim() : searchText.trim();
     
     // 2. 조항 추출 (예: 제30조, 제10조제1항)
-    const articleMatch = searchText.match(/제(\d+)조(?:제(\d+)항)?/);
+    const articleMatch = searchText.match(/제(\d+)조(?:제(\d+)항)?(?:제(\d+)호)?/);
     let joParam = '';
     
     if (articleMatch) {
@@ -41,23 +42,17 @@ export async function GET(request: NextRequest) {
       // 기본 웹페이지 URL 반환
       return NextResponse.json({
         success: false,
-        url: `https://www.law.go.kr/lsSc.do?section=&menuId=1&subMenuId=15&tabMenuId=81&eventGubun=060101&query=${encodeURIComponent(lawName)}`
+        url: constructLawUrl(lawName, articleMatch)
       });
     }
     
     // 5. 응답 데이터에서 필요한 정보 추출
-    if (data && data.law) {
+    if (data && data.law && data.law.length > 0) {
       const lawInfo = data.law[0]; // 첫 번째 결과 사용
       const mst = lawInfo.MST || lawInfo.lsiSeq;
       
       // 6. 웹페이지 URL 구성
-      let webUrl = `https://www.law.go.kr/lsInfoP.do?lsiSeq=${mst}`;
-      if (articleMatch) {
-        webUrl += `#JO_${articleMatch[1]}`;
-        if (articleMatch[2]) {
-          webUrl += `PARAGRAPH_${articleMatch[2]}`;
-        }
-      }
+      const webUrl = constructLawUrl(lawName, articleMatch, mst);
       
       return NextResponse.json({
         success: true,
@@ -69,7 +64,7 @@ export async function GET(request: NextRequest) {
       // 결과가 없는 경우 검색 페이지 URL 반환
       return NextResponse.json({
         success: false,
-        url: `https://www.law.go.kr/lsSc.do?section=&menuId=1&subMenuId=15&tabMenuId=81&eventGubun=060101&query=${encodeURIComponent(lawName)}`
+        url: constructLawUrl(lawName, articleMatch)
       });
     }
     
@@ -78,7 +73,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       success: false,
       error: '법령정보를 가져오는 중 오류가 발생했습니다.',
-      url: `https://www.law.go.kr`
+      url: 'https://www.law.go.kr'
     }, { status: 500 });
   }
+}
+
+// 법령 URL 구성 함수
+function constructLawUrl(
+  lawName: string, 
+  articleMatch: RegExpMatchArray | null, 
+  mst?: string
+): string {
+  // 기본 URL 형식을 간소화된 형태로 변경
+  let webUrl = `https://law.go.kr/법령/${encodeURIComponent(lawName)}`;
+  
+  // 조항 정보가 있으면 URL에 추가
+  if (articleMatch) {
+    // 조문번호 추출 (숫자만 있는 경우 "제X조" 형식으로 변환)
+    const articleNumber = articleMatch[1];
+    const fullArticle = `제${articleNumber}조`;
+    webUrl += `/${encodeURIComponent(fullArticle)}`;
+    
+    // 항 정보는 URL로 직접 표현할 수 없기 때문에 앵커로 처리
+    if (articleMatch[2]) {
+      webUrl += `#${articleMatch[2]}`;
+    }
+  }
+  
+  return webUrl;
 } 
