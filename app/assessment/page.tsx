@@ -1124,6 +1124,38 @@ export default function Home() {
     }
   };
 
+  // 위험성추정 기준 모달 상태 추가
+  const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+  
+  // 위험성추정 기준 모달 열기/닫기 함수
+  const toggleCriteriaModal = () => {
+    setShowCriteriaModal(!showCriteriaModal);
+  };
+
+  // 공정/장비 명칭 입력 모달 취소 처리
+  const handleProcessNameCancel = () => {
+    // 모달 닫기
+    setShowProcessNameModal(false);
+    
+    // 임시 파일 초기화
+    setTempImageFile(null);
+    
+    // 해당 항목의 image 상태 초기화
+    if (tempItemId !== null) {
+      setAnalysisItems(prevItems => 
+        prevItems.map(item => 
+          item.id === tempItemId 
+            ? { ...item, image: null, imageUrl: null }
+            : item
+        )
+      );
+    }
+    
+    // 기타 임시 상태 초기화
+    setTempItemId(null);
+    setProcessNameInput('');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 py-16">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -1134,7 +1166,7 @@ export default function Home() {
           </p>
           
           {/* 탭 버튼 개선 */}
-          <div className="flex justify-center gap-4 mt-8">
+          <div className="flex justify-center gap-4 mt-8 flex-wrap">
             <button
               onClick={() => {
                 if (currentView === 'detail') {
@@ -1166,6 +1198,16 @@ export default function Home() {
               }`}
             >
               저장된 위험성평가 보기
+            </button>
+            {/* 위험성추정 기준 버튼 추가 */}
+            <button
+              onClick={toggleCriteriaModal}
+              className="px-8 py-3.5 rounded-full font-medium text-base transition-all duration-300 bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-600 hover:shadow-md flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              위험성추정 기준
             </button>
           </div>
         </div>
@@ -1855,7 +1897,7 @@ export default function Home() {
               />
               <div className="flex justify-end gap-3">
                 <button
-                  onClick={() => setShowProcessNameModal(false)}
+                  onClick={handleProcessNameCancel}
                   className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition-all duration-300"
                 >
                   취소
@@ -1976,6 +2018,256 @@ export default function Home() {
             background-color: #f1f5f9;
           }
         `}</style>
+        
+        {/* 위험성추정 기준 모달 */}
+        {showCriteriaModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-auto">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto animate-scaleIn">
+              <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 flex justify-between items-center z-10">
+                <h2 className="text-2xl font-bold">위험성추정 기준</h2>
+                <button 
+                  onClick={toggleCriteriaModal}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
+                  aria-label="닫기"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-6 md:p-8 space-y-8">
+                {/* 위험성 추정(가능성) 구분표 */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">위험성 추정(가능성) 구분표</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-blue-700 text-white">
+                          <th className="px-4 py-3 border border-blue-800 text-left">구분</th>
+                          <th className="px-4 py-3 border border-blue-800 text-left">가능성</th>
+                          <th className="px-4 py-3 border border-blue-800 text-left">내용</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-blue-50">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">최상</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">5</td>
+                          <td className="px-4 py-3 border border-blue-200">
+                            피해가 발생할 가능성이 매우 높음<br />
+                            (해당 안전대책이 없거나 미흡하여 피해 발생이 거의 확실함)
+                          </td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">상</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">4</td>
+                          <td className="px-4 py-3 border border-blue-200">
+                            피해가 발생할 가능성이 높음<br />
+                            (기존 방호장치 또는 안전장치가 미흡하고, 작업환경이 위험함)
+                          </td>
+                        </tr>
+                        <tr className="bg-blue-50">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">중</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">3</td>
+                          <td className="px-4 py-3 border border-blue-200">
+                            보통 이상의 피해가 발생할 가능성이 있음<br />
+                            (기존 방호장치가 있으나 기능이 완전하지 않음)
+                          </td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">하</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">2</td>
+                          <td className="px-4 py-3 border border-blue-200">
+                            피해가 발생할 가능성이 보통<br />
+                            (기존 방호장치가 설치되어 있으나 미흡한 부분이 있음)
+                          </td>
+                        </tr>
+                        <tr className="bg-blue-50">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">최하</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">1</td>
+                          <td className="px-4 py-3 border border-blue-200">
+                            피해가 발생할 가능성이 낮음<br />
+                            (안전장치가 완벽하게 설치되어 있음)
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* 위험성 추정(중대성) 구분표 */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">위험성 추정(중대성) 구분표</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-blue-700 text-white">
+                          <th className="px-4 py-3 border border-blue-800 text-left">구분</th>
+                          <th className="px-4 py-3 border border-blue-800 text-left">중대성</th>
+                          <th className="px-4 py-3 border border-blue-800 text-left">내용</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-blue-50">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">최대</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">4</td>
+                          <td className="px-4 py-3 border border-blue-200">사망재해</td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">대</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">3</td>
+                          <td className="px-4 py-3 border border-blue-200">휴업 1일 이상의 재해</td>
+                        </tr>
+                        <tr className="bg-blue-50">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">중</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">2</td>
+                          <td className="px-4 py-3 border border-blue-200">휴업 1일 미만의 재해</td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="px-4 py-3 border border-blue-200 font-medium">소</td>
+                          <td className="px-4 py-3 border border-blue-200 text-center">1</td>
+                          <td className="px-4 py-3 border border-blue-200">휴업 수반되지 않은 재해</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* 위험성 추정 계산표 (매트릭스) */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">위험성 추정 계산표</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-300">
+                      <thead>
+                        <tr>
+                          <th rowSpan={2} className="px-4 py-3 border border-gray-300 bg-green-100 text-center">구분</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">중대성</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">최대</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">대</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">중</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">소</th>
+                        </tr>
+                        <tr>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">단계</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">4</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">3</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">2</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">1</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td rowSpan={5} className="px-4 py-3 border border-gray-300 bg-green-100 text-center">가능성</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-green-100 text-center">최상<br/>5</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-red-600 text-white font-bold text-center">20</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-red-300 text-center">15</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-orange-300 text-center">10</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-green-200 text-center">5</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 bg-green-100 text-center">상<br/>4</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-red-600 text-white font-bold text-center">16</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-orange-300 text-center">12</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-yellow-300 text-center">8</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">4</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 bg-green-100 text-center">중<br/>3</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-orange-300 text-center">12</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-orange-200 text-center">9</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">6</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">3</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 bg-green-100 text-center">하<br/>2</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-yellow-300 text-center">8</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">6</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">4</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">2</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 bg-green-100 text-center">최하<br/>1</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">4</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">3</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">2</td>
+                          <td className="px-4 py-3 border border-gray-300 bg-blue-200 text-center">1</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {/* 위험성 결정 표 */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">위험성 결정</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-300">
+                      <thead>
+                        <tr>
+                          <th colSpan={2} className="px-4 py-3 border border-gray-300 bg-green-100 text-center">위험성 크기</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">관리 기준</th>
+                          <th className="px-4 py-3 border border-gray-300 bg-green-100 text-center">개선방법</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 text-center">16~20</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">매우 높음</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center" rowSpan={3}>
+                            <span className="text-red-600 font-bold">허용 불가능</span>
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">즉시 개선</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 text-center">15</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">높음</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">신속하게 개선</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 text-center">9~12</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">약간 높음</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">
+                            <span className="text-center">가급적 빨리 개선</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 text-center">8</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">보통</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">
+                            <span className="text-green-600">허용 가능</span>
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">계획적으로 개선</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 text-center">4~6</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">낮음</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center" rowSpan={2}>
+                            <span className="text-green-600">허용 가능</span>
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">필요에 따라 개선</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 border border-gray-300 text-center">1~3</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">매우 낮음</td>
+                          <td className="px-4 py-3 border border-gray-300 text-center">현상 유지</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end sticky bottom-0 z-10">
+                <button
+                  onClick={toggleCriteriaModal}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md"
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
