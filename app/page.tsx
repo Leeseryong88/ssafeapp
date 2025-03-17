@@ -1,15 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthButtons from '../components/AuthButtons';
-import { useAuth } from '../components/FirebaseProvider';
+import { getCurrentUser } from './lib/auth';
 
 export default function LandingPage() {
-  const { user, loading } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    // 초기 사용자 상태 확인
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setLoading(false);
+  }, []);
 
   const handleServiceClick = (e: React.MouseEvent) => {
     e.preventDefault();

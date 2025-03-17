@@ -1,14 +1,28 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut } from '../app/lib/auth';
-import { useAuth } from './FirebaseProvider';
+import { onAuthStateChange, signOut, getCurrentUser } from '../app/lib/auth';
 
 const AuthButtons = () => {
-  const { user, loading } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    // 초기 사용자 상태 확인
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setLoading(false);
+
+    // 인증 상태 변경 감지
+    const unsubscribe = onAuthStateChange((authUser) => {
+      setUser(authUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleSignOut = async () => {
     try {

@@ -226,11 +226,23 @@ ${latestImage ? "제공된 이미지를 분석하고, " : ""}위에 언급된 �
 기존에 언급된 위험 요소와 중복되지 않는 새로운 위험 요소에 초점을 맞추어 분석해주세요.
 
 다음 사항을 필수적으로 지켜주세요:
-1. 중대성(Severity)과 가능성(Probability)은 반드시 1~5 사이의 정수로 표시해야 합니다.
-2. 중대성: 1(매우 낮음), 2(낮음), 3(중간), 4(높음), 5(매우 높음)
-3. 가능성: 1(매우 드묾), 2(드묾), 3(가끔), 4(자주), 5(매우 자주)
-4. 위험도는 중대성과 가능성을 고려하여 '낮음', '중간', '높음' 중 하나로 표시합니다.
-5. 각 위험 요소는 구체적이고 명확하게 서술해주세요.
+1. 중대성(Severity)은 1~4 사이의 정수로 표시해야 합니다.
+   - 4: 최대
+   - 3: 대
+   - 2: 중
+   - 1: 소
+2. 가능성(Probability)은 1~5 사이의 정수로 표시해야 합니다.
+   - 5: 가능성 5(최고)
+   - 4: 가능성 4
+   - 3: 가능성 3
+   - 2: 가능성 2
+   - 1: 가능성 1(최저)
+3. 위험도는 중대성과 가능성을 고려하여 다음과 같이 표시합니다:
+   - 상(15~20점): 위험도 '상(점수)' 형식으로 표시 (예: 상(16))
+   - 중(8~12점): 위험도 '중(점수)' 형식으로 표시 (예: 중(12))
+   - 하(1~6점): 위험도 '하(점수)' 형식으로 표시 (예: 하(4))
+4. 각 위험 요소는 구체적이고 명확하게 서술해주세요.
+5. 반드시 위험도는 '등급(점수)' 형식으로 표시해주세요. 예: 중(12), 상(16), 하(4)
 
 응답은 다음 HTML 테이블 형식으로 작성해주세요:
 
@@ -238,8 +250,8 @@ ${latestImage ? "제공된 이미지를 분석하고, " : ""}위에 언급된 �
   <thead>
     <tr style="background-color: #f3f4f6;">
       <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">위험 요소</th>
-      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">중대성</th>
-      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">가능성</th>
+      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">중대성(1-4)</th>
+      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">가능성(1-5)</th>
       <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">위험도</th>
       <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">위험감소대책</th>
     </tr>
@@ -301,8 +313,8 @@ ${latestImage ? "제공된 이미지를 분석하고, " : ""}위에 언급된 �
   <thead>
     <tr style="background-color: #f3f4f6;">
       <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">위험 요소</th>
-      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">중대성</th>
-      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">가능성</th>
+      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">중대성(1-4)</th>
+      <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">가능성(1-5)</th>
       <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">위험도</th>
       <th style="text-align: left; padding: 12px; border: 1px solid #E5E7EB;">위험감소대책</th>
     </tr>
