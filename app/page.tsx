@@ -5,7 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthButtons from '../components/AuthButtons';
-import { getCurrentUser } from './lib/auth';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null);
@@ -13,10 +14,12 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // 초기 사용자 상태 확인
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleServiceClick = (e: React.MouseEvent) => {

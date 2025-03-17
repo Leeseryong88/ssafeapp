@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChange, signOut, getCurrentUser } from '../app/lib/auth';
+import { auth } from '../app/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { signOut } from '../app/lib/auth';
 
 const AuthButtons = () => {
   const [user, setUser] = useState<any>(null);
@@ -11,14 +13,9 @@ const AuthButtons = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // 초기 사용자 상태 확인
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
-
-    // 인증 상태 변경 감지
-    const unsubscribe = onAuthStateChange((authUser) => {
-      setUser(authUser);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
     });
 
     return () => unsubscribe();
