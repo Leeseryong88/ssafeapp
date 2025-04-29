@@ -17,6 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
+      <head>
+        <meta name="google-adsense-account" content="ca-pub-1617599022667185" />
+      </head>
       <body className={inter.className}>
         <FirebaseProvider>
           <main className="min-h-screen bg-gray-100">
